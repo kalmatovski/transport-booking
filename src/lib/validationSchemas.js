@@ -59,6 +59,7 @@ export const updateProfileSchema = z.object({
   
   telegram: z
     .string()
+    .regex(/^@?[a-zA-Z0-9_]{5,32}$/, 'Введите корректный Telegram username')
     .optional()
     .or(z.literal('')),
 });

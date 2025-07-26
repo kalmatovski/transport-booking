@@ -39,8 +39,10 @@ export const useUpdateProfile = () => {
   
   return useMutation({
     mutationFn: authAPI.updateProfile,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
+      // Также обновляем данные в других связанных запросах
+      queryClient.invalidateQueries({ queryKey: ['bookings'] });
     },
   });
 };

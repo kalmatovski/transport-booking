@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-
 /* Базовые стили */
 @layer base {
   html {
@@ -10,160 +9,25 @@
   body {
     @apply antialiased;
   }
-
-  /* Кастомные переменные для темной темы (если понадобится) */
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --background: 222.2 84% 4.9%;
-      --foreground: 210 40% 98%;
-    }
-  }
 }
 
-/* Компоненты */
+/* Только используемые компоненты */
 @layer components {
-  /* Анимация появления для модалок и алертов */
-  .animate-in {
-    animation: animateIn 0.2s ease-out;
+  /* Стили для кода SMS (используется в login/register) */
+  .code-input {
+    @apply font-mono text-center text-2xl tracking-widest;
   }
 
-  @keyframes animateIn {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  /* Стили для фокуса */
-  .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
-  }
-
-  /* Кастомный скроллбар */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    @apply bg-gray-100 rounded-lg;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-lg hover:bg-gray-400;
-  }
-
-  /* Градиентные фоны */
-  .gradient-bg {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  }
-
-  .gradient-bg-blue {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  /* Стили для телефонного номера */
+  .phone-input {
+    @apply font-mono tracking-wider;
   }
 }
 
-/* Утилиты */
+/* Только используемые утилиты */
 @layer utilities {
-  /* Безопасная область для мобильных устройств */
-  .safe-top {
-    padding-top: env(safe-area-inset-top);
-  }
-
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  /* Текст с градиентом */
-  .text-gradient {
-    @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
-  }
-
-  /* Тени */
-  .shadow-colored {
-    box-shadow: 0 4px 14px 0 rgba(37, 99, 235, 0.15);
-  }
-
-  /* Анимации */
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-in-out;
-  }
-
-  .animate-slide-up {
-    animation: slideUp 0.3s ease-out;
-  }
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Состояния загрузки */
-  .loading-skeleton {
-    @apply animate-pulse bg-gray-200 rounded;
-  }
-
-  /* Адаптивные утилиты */
+  /* Контейнерные отступы (используется везде) */
   .container-padding {
     @apply px-4 sm:px-6 lg:px-8;
-  }
-
-  /* Состояния для интерактивных элементов */
-  .interactive {
-    @apply transition-all duration-200 ease-in-out;
-  }
-
-  .interactive:hover {
-    @apply transform scale-105;
-  }
-
-  .interactive:active {
-    @apply transform scale-95;
-  }
-}
-
-/* Кастомные стили для специфических компонентов */
-.phone-input {
-  @apply font-mono tracking-wider;
-}
-
-.code-input {
-  @apply font-mono text-center text-2xl tracking-widest;
-}
-
-/* Стили для мобильных устройств */
-@media (max-width: 640px) {
-  .mobile-full-width {
-    @apply w-full;
-  }
-  
-  .mobile-text-center {
-    @apply text-center;
-  }
-}
-
-/* Печать */
-@media print {
-  .no-print {
-    display: none !important;
   }
 }

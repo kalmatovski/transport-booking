@@ -1,54 +1,45 @@
-// Тестовые данные для демонстрации
+// Тестовые данные
 const MOCK_USERS = [
   {
     id: 1,
     name: 'Тестовый Пользователь',
-    email: 'test@gmail.com',
-    phone: '+79991234567',
-    password: '123456',
-    photo: null,
+    phone: '+71234567890',
+    email: 'test@example.com',
+    password: '123123',
     telegram: '@testuser',
-    rating: 4.8,
-    created_at: '2024-01-15T10:00:00Z'
-  },
-  {
-    id: 2,
-    name: 'Анна Иванова',
-    email: 'anna@mail.ru',
-    phone: '+79997654321',
-    password: 'password',
     photo: null,
-    telegram: '@anna_iv',
-    rating: 4.9,
-    created_at: '2024-02-01T15:30:00Z'
+    rating: 4.8,
+    trips_count: 15,
   }
 ];
 
 const MOCK_ROUTES = [
-  { id: 1, from: 'Красноярск', to: 'Абакан' },
-  { id: 2, from: 'Абакан', to: 'Красноярск' }
+  { id: 1, name: 'Красноярск — Абакан', distance: '250 км', duration: '3.5 ч' },
+  { id: 2, name: 'Абакан — Красноярск', distance: '250 км', duration: '3.5 ч' },
 ];
 
 const MOCK_DRIVERS = [
   {
     id: 1,
     name: 'Сергей Водителев',
+    phone: '+79991234567',
     car_model: 'Toyota Camry',
-    car_color: 'Серебристый',
-    car_photo: null,
-    rating: 4.9,
+    car_photo: 'https://via.placeholder.com/300x200',
     available_seats: 3,
-    phone: '+79993334455'
+    rating: 4.9,
+    trips_count: 127,
+    price: 800,
   },
   {
     id: 2,
-    name: 'Михаил Рулевой',
+    name: 'Анна Поездкина',
+    phone: '+79987654321',
     car_model: 'Hyundai Solaris',
-    car_color: 'Белый',
-    car_photo: null,
-    rating: 4.7,
+    car_photo: 'https://via.placeholder.com/300x200',
     available_seats: 2,
-    phone: '+79996667788'
+    rating: 4.7,
+    trips_count: 89,
+    price: 750,
   }
 ];
 
@@ -57,64 +48,35 @@ const MOCK_BOOKINGS = [
     id: 1,
     route_name: 'Красноярск — Абакан',
     driver_name: 'Сергей Водителев',
-    date: '2024-12-20',
+    date: '2025-02-15',
     passengers: 2,
-    status: 'confirmed',
-    rating: 5
-  },
-  {
-    id: 2,
-    route_name: 'Абакан — Красноярск',
-    driver_name: 'Михаил Рулевой',
-    date: '2024-12-15',
-    passengers: 1,
-    status: 'completed',
-    rating: 4
+    status: 'confirmed'
   }
 ];
 
-// Имитация задержки сети
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Генерация JWT токена (фейкового)
-const generateMockToken = (user) => {
-  return `mock_jwt_token_${user.id}_${Date.now()}`;
-};
-
-// Тестовые API функции
+// Простые API функции без задержек и сложной обработки ошибок
 export const mockAuthAPI = {
-  // Вход по email
-  login: async (data) => {
-    await delay(1000); // Имитация задержки
-    
+  // Вход
+  login: (data) => {
     if (data.method === 'email') {
       const user = MOCK_USERS.find(u => 
         u.email === data.email && u.password === data.password
       );
       
       if (!user) {
-        // Правильно бросаем ошибку как в реальном API
-        const error = new Error('Неверный email или пароль');
-        error.response = {
-          data: { message: 'Неверный email или пароль' },
-          status: 401
-        };
-        throw error;
+        throw new Error('Неверный email или пароль');
       }
       
       const { password, ...userWithoutPassword } = user;
-      const token = generateMockToken(user);
-      
       return {
         data: {
           user: userWithoutPassword,
-          token: token
+          token: `mock_token_${user.id}`
         }
       };
     }
     
     if (data.method === 'phone') {
-      // Для телефона просто возвращаем успех (SMS "отправлена")
       return {
         data: {
           phone: data.phone,
@@ -123,59 +85,36 @@ export const mockAuthAPI = {
       };
     }
     
-    const error = new Error('Неподдерживаемый метод входа');
-    error.response = {
-      data: { message: 'Неподдерживаемый метод входа' },
-      status: 400
-    };
-    throw error;
+    throw new Error('Неподдерживаемый метод входа');
   },
 
-  // Подтверждение SMS (для телефона)
-  verifySMS: async (data) => {
-    await delay(800);
-    
-    // Любой 4-значный код принимаем
+  // Подтверждение SMS
+  verifySMS: (data) => {
     if (data.code && data.code.length === 4) {
-      const user = MOCK_USERS[0]; // Возвращаем тестового пользователя
+      const user = MOCK_USERS[0];
       const { password, ...userWithoutPassword } = user;
-      const token = generateMockToken(user);
       
       return {
         data: {
           user: userWithoutPassword,
-          token: token
+          token: `mock_token_${user.id}`
         }
       };
     }
     
-    const error = new Error('Неверный код подтверждения');
-    error.response = {
-      data: { message: 'Неверный код подтверждения' },
-      status: 400
-    };
-    throw error;
+    throw new Error('Неверный код подтверждения');
   },
 
   // Регистрация
-  register: async (data) => {
-    await delay(1200);
-    
-    // Проверяем, не существует ли пользователь
+  register: (data) => {
     const existingUser = MOCK_USERS.find(u => 
       u.email === data.email || u.phone === data.phone
     );
     
     if (existingUser) {
-      const error = new Error('Пользователь с таким email или телефоном уже существует');
-      error.response = {
-        data: { message: 'Пользователь с таким email или телефоном уже существует' },
-        status: 409
-      };
-      throw error;
+      throw new Error('Пользователь с таким email или телефоном уже существует');
     }
     
-    // "Регистрируем" нового пользователя
     return {
       data: {
         phone: data.phone,
@@ -185,8 +124,7 @@ export const mockAuthAPI = {
   },
 
   // Получение профиля
-  getProfile: async () => {
-    await delay(500);
+  getProfile: () => {
     const user = MOCK_USERS[0];
     const { password, ...userWithoutPassword } = user;
     
@@ -196,26 +134,20 @@ export const mockAuthAPI = {
   },
 
   // Обновление профиля
-  updateProfile: async (data) => {
-    await delay(800);
-    
-    // Обновляем данные тестового пользователя
+  updateProfile: (data) => {
     const updatedUser = {
       ...MOCK_USERS[0],
       ...data,
     };
     
-    // Удаляем пароль из ответа
     const { password, ...userWithoutPassword } = updatedUser;
-    
     return {
       data: userWithoutPassword
     };
   },
 
   // Повторная отправка SMS
-  resendSMS: async (phone) => {
-    await delay(500);
+  resendSMS: (phone) => {
     return {
       data: {
         message: 'SMS код отправлен повторно'
@@ -224,38 +156,25 @@ export const mockAuthAPI = {
   }
 };
 
-// Тестовые API для поездок
+// Простые API для поездок
 export const mockRidesAPI = {
   // Получить маршруты
-  getRoutes: async () => {
-    await delay(300);
-    return {
-      data: MOCK_ROUTES
-    };
-  },
+  getRoutes: () => ({
+    data: MOCK_ROUTES
+  }),
 
   // Получить доступных водителей
-  getAvailableDrivers: async (routeId, date) => {
-    await delay(800);
-    
-    // Возвращаем водителей для любого маршрута и даты
-    return {
-      data: MOCK_DRIVERS
-    };
-  },
+  getAvailableDrivers: (routeId, date) => ({
+    data: MOCK_DRIVERS
+  }),
 
   // Мои бронирования
-  getMyBookings: async () => {
-    await delay(600);
-    return {
-      data: MOCK_BOOKINGS
-    };
-  },
+  getMyBookings: () => ({
+    data: MOCK_BOOKINGS
+  }),
 
   // Бронирование поездки
-  bookRide: async (data) => {
-    await delay(1000);
-    
+  bookRide: (data) => {
     const newBooking = {
       id: Date.now(),
       route_name: 'Красноярск — Абакан',
@@ -271,16 +190,14 @@ export const mockRidesAPI = {
   },
 
   // Отмена бронирования
-  cancelBooking: async (bookingId) => {
-    await delay(500);
-    return {
-      data: {
-        message: 'Бронирование отменено'
-      }
-    };
-  }
+  cancelBooking: (bookingId) => ({
+    data: {
+      message: 'Бронирование отменено'
+    }
+  })
 };
 
-// Функция для переключения между реальным и тестовым API
-export const isDevelopment = process.env.NODE_ENV === 'development';
-export const useMockAPI = true; // Переключатель для тестирования
+
+
+// Переключатель для тестирования
+export const useMockAPI = true;

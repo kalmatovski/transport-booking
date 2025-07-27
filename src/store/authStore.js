@@ -7,6 +7,7 @@ export const useAuthStore = create(
       user: null,
       isAuthenticated: false,
       token: null,
+      isHydrated: false,
       
       // Действия
       login: (userData, token) => {
@@ -30,20 +31,28 @@ export const useAuthStore = create(
           user: { ...state.user, ...userData }
         }));
       },
+
+      // Завершаем гидратацию
+      setHydrated: () => {
+        set({ isHydrated: true });
+      },
       
       // Геттеры
       getUser: () => get().user,
       getToken: () => get().token,
       isLoggedIn: () => get().isAuthenticated,
+      
+      // Проверка ролей
+      isDriver: () => get().user?.role === 'driver',
+      isClient: () => get().user?.role === 'client' || !get().user?.role, // По умолчанию клиент
+      isAdmin: () => get().user?.role === 'admin',
     }),
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => {
-        // Проверяем, что мы на клиенте
         if (typeof window !== 'undefined') {
           return localStorage;
         }
-        // На сервере возвращаем заглушку
         return {
           getItem: () => null,
           setItem: () => {},
@@ -55,8 +64,11 @@ export const useAuthStore = create(
         token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
-      // Пропускаем hydration на сервере
-      skipHydration: true,
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.setHydrated();
+        }
+      },
     }
   )
 );

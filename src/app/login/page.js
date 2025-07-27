@@ -12,8 +12,9 @@ import { loginPhoneSchema, loginEmailSchema, verifySMSSchema } from '../../lib/v
 import { authAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import { Button, Input, Card, CardContent, Alert } from '../../components/ui';
+import { withGuest } from '../../components/withAuth'; // Импортируем HOC
 
-export default function LoginPage() {
+function LoginPage() {
   const [method, setMethod] = useState('phone'); // 'phone' | 'email'
   const [step, setStep] = useState('login'); // 'login' | 'verify'
   const [phone, setPhone] = useState('');
@@ -179,7 +180,6 @@ export default function LoginPage() {
                       type="tel"
                       placeholder="+7XXXXXXXXXX"
                       error={loginErrors.phone?.message}
-                      helperText="На этот номер придет SMS с кодом"
                       {...loginForm('phone')}
                     />
                   ) : (
@@ -203,8 +203,7 @@ export default function LoginPage() {
 
                   {loginMutation.error && (
                     <Alert variant="error">
-                      {loginMutation.error.response?.data?.message || 
-                       'Произошла ошибка при входе'}
+                      {loginMutation.error.message || 'Произошла ошибка при входе'}
                     </Alert>
                   )}
 
@@ -251,8 +250,7 @@ export default function LoginPage() {
 
                   {verifyMutation.error && (
                     <Alert variant="error">
-                      {verifyMutation.error.response?.data?.message || 
-                       'Неверный код подтверждения'}
+                      {verifyMutation.error.message || 'Неверный код подтверждения'}
                     </Alert>
                   )}
 
@@ -279,16 +277,15 @@ export default function LoginPage() {
                     disabled={resendMutation.isPending}
                     className="text-sm text-blue-600 hover:text-blue-500 disabled:opacity-50"
                   >
-                    {resendMutation.isPending ? 'Отправляем...' : 'Отправить код повторно'}
+                    {resendMutation.isPending ? 'Отправляем...' : 'Отправить код еще раз'}
                   </button>
-
+                  
                   <button
                     type="button"
                     onClick={() => setStep('login')}
-                    className="flex items-center justify-center w-full text-sm text-gray-600 hover:text-gray-500"
+                    className="block w-full text-sm text-gray-500 hover:text-gray-700"
                   >
-                    <ArrowLeft className="w-4 h-4 mr-1" />
-                    Изменить номер телефона
+                    ← Вернуться к вводу телефона
                   </button>
                 </div>
               </div>
@@ -299,3 +296,6 @@ export default function LoginPage() {
     </div>
   );
 }
+
+// Экспортируем компонент обернутый в HOC
+export default withGuest(LoginPage);

@@ -26,15 +26,8 @@ import { useAuthStore } from '../../store/authStore';
 import { Button, Input, Card, CardContent, CardHeader, Alert, LoadingSpinner } from '../../components/ui';
 
 export default function ProfilePage() {
-      const user = {
-    name:"Akbar",
-    email: "akbar@gmail.com",
-    phone: "+79999999999",
-    photo: "https://sm.ign.com/t/ign_pk/cover/a/avatar-gen/avatar-generations_rpge.1200.jpg",
-    telegram: "@akbar",
-  } 
   const router = useRouter();
-  const {isAuthenticated, updateUser } = useAuthStore();
+  const {user,isAuthenticated, updateUser } = useAuthStore();
   const [profilePhoto, setProfilePhoto] = useState(user?.photo || null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -43,7 +36,7 @@ export default function ProfilePage() {
   const queryClient = useQueryClient();
 
   // Проверяем авторизацию
-  if (isAuthenticated) {
+  if (!isAuthenticated) {
     router.push('/login');
     return null;
   }

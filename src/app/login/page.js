@@ -1,4 +1,5 @@
 'use client';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -76,7 +77,18 @@ export default function LoginPage() {
   });
 
   const onLoginSubmit = (data) => {
-    loginMutation.mutate(data);
+    if (method === 'phone') {
+      loginMutation.mutate({
+        method: 'phone',
+        phone: data.phone,
+      });
+    } else {
+      loginMutation.mutate({
+        method: 'email',
+        email: data.email,
+        password: data.password,
+      });
+    }
   };
 
   const onVerifySubmit = (data) => {
@@ -91,7 +103,7 @@ export default function LoginPage() {
     resetVerifyForm();
   };
 
-  const switchMethod = (newMethod) => {
+  const handleMethodChange = (newMethod) => {
     setMethod(newMethod);
     setStep('login');
     resetLoginForm();
@@ -132,30 +144,30 @@ export default function LoginPage() {
             {step === 'login' ? (
               <div className="space-y-6">
                 {/* Переключатель методов входа */}
-                <div className="flex rounded-lg bg-gray-100 p-1">
+                <div className="flex rounded-lg border border-gray-200 p-1">
                   <button
                     type="button"
-                    onClick={() => switchMethod('phone')}
+                    onClick={() => handleMethodChange('phone')}
                     className={`flex-1 flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                       method === 'phone'
-                        ? 'bg-white text-gray-900 shadow-sm'
+                        ? 'bg-blue-600 text-white'
                         : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
                     <Phone className="w-4 h-4 mr-2" />
-                    По телефону
+                    Телефон
                   </button>
                   <button
                     type="button"
-                    onClick={() => switchMethod('email')}
+                    onClick={() => handleMethodChange('email')}
                     className={`flex-1 flex items-center justify-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                       method === 'email'
-                        ? 'bg-white text-gray-900 shadow-sm'
+                        ? 'bg-blue-600 text-white'
                         : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
                     <Mail className="w-4 h-4 mr-2" />
-                    По email
+                    Email
                   </button>
                 </div>
 
@@ -201,14 +213,15 @@ export default function LoginPage() {
                     className="w-full"
                     loading={loginMutation.isPending}
                   >
-                    {method === 'phone' ? 'Отправить код' : 'Войти'}
+                    {method === 'phone' ? 'Получить код' : 'Войти'}
                   </Button>
                 </form>
 
+                {/* Дополнительные ссылки */}
                 {method === 'email' && (
                   <div className="text-center">
-                    <Link
-                      href="/forgot-password"
+                    <Link 
+                      href="/forgot-password" 
                       className="text-sm text-blue-600 hover:text-blue-500"
                     >
                       Забыли пароль?

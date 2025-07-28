@@ -1,31 +1,23 @@
 import { z } from 'zod';
 
-// Схема для регистрации
-export const registerSchema = z.object({
-  name: z
+// Схема для входа (обновлена под реальный API)
+export const loginSchema = z.object({
+  username: z
     .string()
-    .min(2, 'Имя должно содержать минимум 2 символа')
-    .max(50, 'Имя не должно превышать 50 символов'),
+    .min(1, 'Введите имя пользователя'),
   
-  phone: z
+  password: z
     .string()
-    .regex(/^\+7\d{10}$/, 'Введите корректный номер телефона в формате +7XXXXXXXXXX'),
-  
-  email: z
-    .string()
-    .email('Введите корректный email')
-    .optional()
-    .or(z.literal('')),
+    .min(1, 'Введите пароль'),
 });
 
-// Схема для входа по телефону
+// Оставляем старые схемы для совместимости (пока не обновим все компоненты)
 export const loginPhoneSchema = z.object({
   phone: z
     .string()
     .regex(/^\+7\d{10}$/, 'Введите корректный номер телефона в формате +7XXXXXXXXXX'),
 });
 
-// Схема для входа по email
 export const loginEmailSchema = z.object({
   email: z
     .string()
@@ -36,7 +28,49 @@ export const loginEmailSchema = z.object({
     .min(1, 'Введите пароль'),
 });
 
-// Схема для подтверждения SMS кода
+// Схема для регистрации (обновлена под реальный API)
+export const registerSchema = z.object({
+  username: z
+    .string()
+    .min(3, 'Имя пользователя должно содержать минимум 3 символа')
+    .max(150, 'Имя пользователя не должно превышать 150 символов')
+    .regex(/^[a-zA-Z0-9@.+-_]+$/, 'Разрешены только буквы, цифры и символы @/./+/-/_'),
+  
+  password: z
+    .string()
+    .min(6, 'Пароль должен содержать минимум 6 символов'),
+  
+  role: z
+    .enum(['driver', 'passenger'], {
+      errorMap: () => ({ message: 'Выберите тип пользователя' })
+    }),
+  
+  phone: z
+    .string()
+    .min(1, 'Номер телефона обязателен')
+    .max(20, 'Номер телефона не должен превышать 20 символов'),
+  
+  first_name: z
+    .string()
+    .max(150, 'Имя не должно превышать 150 символов')
+    .optional()
+    .or(z.literal('')),
+  
+  last_name: z
+    .string()
+    .max(150, 'Фамилия не должна превышать 150 символов')
+    .optional()
+    .or(z.literal('')),
+  
+  email: z
+    .string()
+    .email('Введите корректный email')
+    .max(254, 'Email не должен превышать 254 символа')
+    .optional()
+    .or(z.literal('')),
+});
+
+// Схема для подтверждения SMS кода (если нужна)
 export const verifySMSSchema = z.object({
   code: z
     .string()
@@ -46,10 +80,15 @@ export const verifySMSSchema = z.object({
 
 // Схема для обновления профиля
 export const updateProfileSchema = z.object({
-  name: z
+  first_name: z
     .string()
     .min(2, 'Имя должно содержать минимум 2 символа')
     .max(50, 'Имя не должно превышать 50 символов'),
+  
+  last_name: z
+    .string()
+    .min(2, 'Фамилия должна содержать минимум 2 символа')
+    .max(50, 'Фамилия не должна превышать 50 символов'),
   
   email: z
     .string()
@@ -57,9 +96,9 @@ export const updateProfileSchema = z.object({
     .optional()
     .or(z.literal('')),
   
-  telegram: z
+  phone_number: z
     .string()
-    .regex(/^@?[a-zA-Z0-9_]{5,32}$/, 'Введите корректный Telegram username')
+    .regex(/^\+7\d{10}$/, 'Введите корректный номер телефона')
     .optional()
     .or(z.literal('')),
 });

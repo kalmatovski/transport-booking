@@ -1,10 +1,9 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
-import { mockAuthAPI, mockRidesAPI, useMockAPI } from './mockAuth';
 
 // Создаем instance axios
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -14,7 +13,7 @@ const api = axios.create({
 // Интерцептор для добавления токена к запросам
 api.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().getToken();
+    const token = useAuthStore.getState().getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -28,107 +27,110 @@ api.interceptors.request.use(
 // Интерцептор для обработки ответов
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Если получили 401, выходим из системы
+  async (error) => {
+    const originalRequest = error.config;
+    
+    // НЕ перенаправляем при ошибке логина - это нормальная ошибка
+    const isLoginRequest = originalRequest.url?.includes('/auth/login/');
+    const isRegisterRequest = originalRequest.url?.includes('/auth/register/');
+    
+    if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest && !isRegisterRequest) {
+      originalRequest._retry = true;
+      
+      // Пытаемся обновить токен
+      try {
+        const refreshToken = useAuthStore.getState().getRefreshToken();
+        if (refreshToken) {
+          const response = await api.post('/auth/refresh/', {
+            refresh: refreshToken
+          });
+          
+          const newAccessToken = response.data.access;
+          useAuthStore.getState().updateTokens(newAccessToken, refreshToken);
+          
+          // Повторяем оригинальный запрос с новым токеном
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        // Если обновление токена не удалось, выходим
+        useAuthStore.getState().logout();
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
+    }
+    
+    // Только для НЕ-логин запросов перенаправляем при 401
+    if (error.response?.status === 401 && !isLoginRequest && !isRegisterRequest) {
       useAuthStore.getState().logout();
       window.location.href = '/login';
     }
+    
     return Promise.reject(error);
   }
 );
 
 // API методы для авторизации
 export const authAPI = {
-  // Регистрация клиента
-  register: (data) => {
-    if (useMockAPI) {
-      return mockAuthAPI.register(data);
-    }
-    return api.post('/auth/register/', data);
-  },
-  
-  // Вход
+  // Вход - теперь простой username/password
   login: (data) => {
-    if (useMockAPI) {
-      return mockAuthAPI.login(data);
-    }
-    return api.post('/auth/login/', data);
+    return api.post('/auth/login/', {
+      username: data.username,
+      password: data.password
+    });
   },
   
-  // Подтверждение SMS кода
-  verifySMS: (data) => {
-    if (useMockAPI) {
-      return mockAuthAPI.verifySMS(data);
-    }
-    return api.post('/auth/verify-sms/', data);
+  // Регистрация
+  register: (data) => {
+    return api.post('/auth/register/', {
+      username: data.username,
+      password: data.password,
+      role: data.role,
+      phone: data.phone,
+      first_name: data.first_name || '',
+      last_name: data.last_name || '',
+      email: data.email || '',
+    });
   },
   
-  // Отправка SMS кода повторно
-  resendSMS: (phone) => {
-    if (useMockAPI) {
-      return mockAuthAPI.resendSMS(phone);
-    }
-    return api.post('/auth/resend-sms/', { phone });
+  // Обновление access токена
+  refreshToken: (refreshToken) => {
+    return api.post('/auth/refresh/', {
+      refresh: refreshToken
+    });
   },
   
-  // Получение профиля
+  // Получение профиля (пример, endpoint может отличаться)
   getProfile: () => {
-    if (useMockAPI) {
-      return mockAuthAPI.getProfile();
-    }
     return api.get('/auth/profile/');
   },
   
   // Обновление профиля
   updateProfile: (data) => {
-    if (useMockAPI) {
-      return mockAuthAPI.updateProfile(data);
-    }
     return api.patch('/auth/profile/', data);
   },
 };
 
-// API методы для поездок
+// API для поездок
 export const ridesAPI = {
-  // Получить все маршруты
+  // Получить список маршрутов
   getRoutes: () => {
-    if (useMockAPI) {
-      return mockRidesAPI.getRoutes();
-    }
-    return api.get('/routes/');
+    return api.get('/trips/');
   },
   
-  // Получить доступных водителей по маршруту
-  getAvailableDrivers: (routeId, date) => {
-    if (useMockAPI) {
-      return mockRidesAPI.getAvailableDrivers(routeId, date);
-    }
-    return api.get(`/rides/available/`, { params: { route: routeId, date } });
+  // Получить водителей для маршрута
+  getDrivers: (routeId) => {
+    return api.get(`/vehicles/?route=${routeId}`);
   },
   
-  // Забронировать место
+  // Забронировать поездку
   bookRide: (data) => {
-    if (useMockAPI) {
-      return mockRidesAPI.bookRide(data);
-    }
     return api.post('/bookings/', data);
   },
   
   // Получить мои бронирования
   getMyBookings: () => {
-    if (useMockAPI) {
-      return mockRidesAPI.getMyBookings();
-    }
     return api.get('/bookings/my/');
-  },
-  
-  // Отменить бронирование
-  cancelBooking: (bookingId) => {
-    if (useMockAPI) {
-      return mockRidesAPI.cancelBooking(bookingId);
-    }
-    return api.delete(`/bookings/${bookingId}/`);
   },
 };
 

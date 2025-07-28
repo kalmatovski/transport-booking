@@ -6,22 +6,40 @@ export const useAuthStore = create(
     (set, get) => ({
       user: null,
       isAuthenticated: false,
-      token: null,
+      accessToken: null,
+      refreshToken: null,
       isHydrated: false,
       
-      // Действия
-      login: (userData, token) => {
+      // Действия для login с JWT токенами
+      login: (userData, accessToken, refreshToken) => {
         set({
           user: userData,
-          token: token,
+          accessToken: accessToken,
+          refreshToken: refreshToken,
           isAuthenticated: true,
+        });
+      },
+      
+      // Обновление только access токена (при refresh)
+      updateTokens: (newAccessToken, newRefreshToken) => {
+        set({
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken || get().refreshToken,
+        });
+      },
+      
+      // Обновление пользователя (когда получим профиль)
+      setUser: (userData) => {
+        set({
+          user: userData,
         });
       },
       
       logout: () => {
         set({
           user: null,
-          token: null,
+          accessToken: null,
+          refreshToken: null,
           isAuthenticated: false,
         });
       },
@@ -39,13 +57,21 @@ export const useAuthStore = create(
       
       // Геттеры
       getUser: () => get().user,
-      getToken: () => get().token,
+      getToken: () => get().accessToken, // Для совместимости с API клиентом
+      getAccessToken: () => get().accessToken,
+      getRefreshToken: () => get().refreshToken,
       isLoggedIn: () => get().isAuthenticated,
       
+      // Проверка есть ли действующие токены
+      hasValidTokens: () => {
+        const { accessToken, refreshToken } = get();
+        return !!(accessToken && refreshToken);
+      },
+      
       // Проверка ролей
-      isDriver: () => get().user?.role === 'driver',
-      isClient: () => get().user?.role === 'client' || !get().user?.role, // По умолчанию клиент
-      isAdmin: () => get().user?.role === 'admin',
+      isDriver: () => get().user?.user_type === 'driver',
+      isClient: () => get().user?.user_type === 'client' || !get().user?.user_type,
+      isAdmin: () => get().user?.user_type === 'admin',
     }),
     {
       name: 'auth-storage',
@@ -61,7 +87,8 @@ export const useAuthStore = create(
       }),
       partialize: (state) => ({
         user: state.user,
-        token: state.token,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {

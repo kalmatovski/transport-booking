@@ -69,9 +69,9 @@ export const useAuthStore = create(
       },
       
       // Проверка ролей
-      isDriver: () => get().user?.user_type === 'driver',
-      isClient: () => get().user?.user_type === 'client' || !get().user?.user_type,
-      isAdmin: () => get().user?.user_type === 'admin',
+      isDriver: () => get().user?.role === 'driver',
+      isPassenger: () => get().user?.role === 'passenger',
+    //   isAdmin: () => get().user?.role === 'admin',
     }),
     {
       name: 'auth-storage',

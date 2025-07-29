@@ -96,6 +96,14 @@ export const updateProfileSchema = z.object({
     .regex(/^\+7\d{10}$/, 'Введите корректный номер телефона')
     .optional()
     .or(z.literal('')),
+
+      name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
+  email: z.string().email('Введите корректный email').optional().or(z.literal('')),
+  telegram: z.string().optional().or(z.literal('')),
+  
+  // Поля для водителя
+  car_model: z.string().optional().or(z.literal('')),
+  car_number: z.string().optional().or(z.literal('')),
 });
 
 // Схема для бронирования поездки
@@ -106,3 +114,4 @@ export const bookRideSchema = z.object({
   passengers: z.number().min(1, 'Укажите количество пассажиров').max(8, 'Максимум 8 пассажиров'),
   comment: z.string().optional(),
 });
+

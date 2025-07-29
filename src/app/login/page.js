@@ -35,28 +35,20 @@ function LoginPage() {
   // Мутация входа
   const loginMutation = useMutation({
     mutationFn: authAPI.login,
-    onSuccess: async (response) => {
-      // Django JWT возвращает access и refresh токены
-      const { access, refresh } = response.data;
-      
-      // Сохраняем токены в store
-      // Пока без профиля, так как endpoint не найден
-      login(null, access, refresh);
-      
-      // TODO: Получить данные пользователя когда будет готов endpoint
-      // Временно создаем базовый объект пользователя
-      const basicUser = {
-        id: null,
-        username: null,
-        email: null,
-        // Другие поля будут получены позже
-      };
-      
-      useAuthStore.getState().setUser(basicUser);
-      
-      // Перенаправляем на главную
-      router.push('/');
-    },
+   onSuccess: async (response) => {
+  // Django JWT возвращает access, refresh и user с ролью
+  const { access, refresh, user } = response.data;
+  
+  // Сохраняем токены и минимальные данные пользователя (только роль)
+  const minimalUser = {
+    role: user.role
+  };
+  
+  login(minimalUser, access, refresh);
+  
+  // Перенаправляем на главную
+  router.push('/');
+},
     onError: (error) => {
       console.error('Login error:', error);
     }

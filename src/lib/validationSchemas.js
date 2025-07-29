@@ -28,7 +28,7 @@ export const loginEmailSchema = z.object({
     .min(1, 'Введите пароль'),
 });
 
-// Схема для регистрации (обновлена под реальный API)
+// Схема для регистрации (только для пассажиров)
 export const registerSchema = z.object({
   username: z
     .string()
@@ -39,11 +39,6 @@ export const registerSchema = z.object({
   password: z
     .string()
     .min(6, 'Пароль должен содержать минимум 6 символов'),
-  
-  role: z
-    .enum(['driver', 'passenger'], {
-      errorMap: () => ({ message: 'Выберите тип пользователя' })
-    }),
   
   phone: z
     .string()

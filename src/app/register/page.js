@@ -24,14 +24,11 @@ function RegisterPage() {
     handleSubmit,
     formState: { errors },
     reset,
-    watch,
-    setValue,
   } = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       username: '',
       password: '',
-      role: 'passenger', // По умолчанию пассажир
       phone: '',
       first_name: '',
       last_name: '',
@@ -39,10 +36,6 @@ function RegisterPage() {
     },
   });
 
-  // Следим за выбранной ролью
-  const selectedRole = watch('role');
-
-  
 
   // Мутация регистрации
   const registerMutation = useMutation({
@@ -75,11 +68,11 @@ function RegisterPage() {
   });
 
   const onSubmit = (data) => {
-    // Убираем пустые поля
+    // Всегда регистрируем как пассажира
     const cleanData = {
       username: data.username,
       password: data.password,
-      role: data.role,
+      role: 'passenger', // Фиксированная роль
       phone: data.phone,
       first_name: data.first_name || '',
       last_name: data.last_name || '',
@@ -102,7 +95,7 @@ function RegisterPage() {
 
         {/* Заголовок */}
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Создание аккаунта
+          Регистрация пассажира
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Уже есть аккаунт?{' '}
@@ -119,7 +112,7 @@ function RegisterPage() {
               {/* Имя пользователя */}
               <Input
                 label="Имя пользователя *"
-                placeholder="username123"
+                placeholder="Введите имя пользователя"
                 icon={User}
                 error={errors.username?.message}
                 helperText="Будет использоваться для входа в систему"
@@ -137,74 +130,6 @@ function RegisterPage() {
                 {...register('password')}
               />
 
-              {/* Тип пользователя */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Тип пользователя *
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <input
-                      type="radio"
-                      id="passenger"
-                      value="passenger"
-                      className="sr-only"
-                      {...register('role')}
-                    />
-                    <label
-                      htmlFor="passenger"
-                      className={`flex items-center justify-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                        selectedRole === 'passenger'
-                          ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
-                          : 'border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="text-center">
-                        <User className={`w-6 h-6 mx-auto mb-2 ${
-                          selectedRole === 'passenger' ? 'text-blue-600' : 'text-gray-400'
-                        }`} />
-                        <span className={`text-sm font-medium ${
-                          selectedRole === 'passenger' ? 'text-blue-900' : 'text-gray-700'
-                        }`}>
-                          Пассажир
-                        </span>
-                      </div>
-                    </label>
-                  </div>
-                  <div>
-                    <input
-                      type="radio"
-                      id="driver"
-                      value="driver"
-                      className="sr-only"
-                      {...register('role')}
-                    />
-                    <label
-                      htmlFor="driver"
-                      className={`flex items-center justify-center p-4 border rounded-lg cursor-pointer transition-colors ${
-                        selectedRole === 'driver'
-                          ? 'bg-blue-50 border-blue-500 ring-2 ring-blue-500'
-                          : 'border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="text-center">
-                        <Car className={`w-6 h-6 mx-auto mb-2 ${
-                          selectedRole === 'driver' ? 'text-blue-600' : 'text-gray-400'
-                        }`} />
-                        <span className={`text-sm font-medium ${
-                          selectedRole === 'driver' ? 'text-blue-900' : 'text-gray-700'
-                        }`}>
-                          Водитель
-                        </span>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-                {errors.role && (
-                  <p className="text-sm text-red-600">{errors.role.message}</p>
-                )}
-              </div>
-
               {/* Номер телефона */}
               <Input
                 label="Номер телефона *"
@@ -212,14 +137,14 @@ function RegisterPage() {
                 placeholder="+7XXXXXXXXXX"
                 icon={Phone}
                 error={errors.phone?.message}
-                helperText="Для связи с водителем/пассажирами"
+                helperText="Для связи с водителем"
                 {...register('phone')}
               />
 
               {/* Имя */}
               <Input
                 label="Имя"
-                placeholder="Иван"
+                placeholder="Введите имя"
                 icon={UserCheck}
                 error={errors.first_name?.message}
                 {...register('first_name')}
@@ -228,7 +153,7 @@ function RegisterPage() {
               {/* Фамилия */}
               <Input
                 label="Фамилия"
-                placeholder="Иванов"
+                placeholder="Введите фамилию"
                 icon={UserCheck}
                 error={errors.last_name?.message}
                 {...register('last_name')}
@@ -263,7 +188,7 @@ function RegisterPage() {
                 className="w-full"
                 loading={registerMutation.isPending}
               >
-                Создать аккаунт
+                Зарегистрироваться как пассажир
               </Button>
             </form>
           </CardContent>

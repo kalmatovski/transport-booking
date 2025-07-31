@@ -100,9 +100,9 @@ export const authAPI = {
     });
   },
   
-  // Получение профиля (пример, endpoint может отличаться)
+  // Получение профиля
   getProfile: () => {
-    return api.get('/auth/profile/');
+    return api.get('/auth/me/');
   },
   
   // Обновление профиля
@@ -113,24 +113,63 @@ export const authAPI = {
 
 // API для поездок
 export const ridesAPI = {
-  // Получить список маршрутов
-  getRoutes: () => {
-    return api.get('/trips/');
+  // Получить список доступных поездок
+  getAvailableTrips: (routeId, date) => {
+    let url = '/trips/';
+    const params = [];
+    
+    // Всегда фильтруем только доступные поездки
+    params.push('status=available');
+    
+    if (routeId) {
+      params.push(`route=${routeId}`);
+    }
+    
+    if (date) {
+      // Преобразуем дату в формат YYYY-MM-DD для Django
+      params.push(`departure_date=${date}`);
+    }
+    
+    if (params.length > 0) {
+      url += '?' + params.join('&');
+    }
+    
+    return api.get(url);
   },
   
-  // Получить водителей для маршрута
-  getDrivers: (routeId) => {
-    return api.get(`/vehicles/?route=${routeId}`);
+  // Получить список маршрутов (пока хардкод)
+  getRoutes: () => {
+    return Promise.resolve({
+      data: [
+        { id: 1, name: 'Красноярск → Абакан' },
+        { id: 2, name: 'Абакан → Красноярск' }
+      ]
+    });
+  },
+  
+  // Получить конкретную поездку
+  getTrip: (tripId) => {
+    return api.get(`/trips/${tripId}/`);
   },
   
   // Забронировать поездку
-  bookRide: (data) => {
-    return api.post('/bookings/', data);
+  bookTrip: (tripId, data) => {
+    return api.post(`/trips/${tripId}/book/`, data);
   },
   
   // Получить мои бронирования
   getMyBookings: () => {
     return api.get('/bookings/my/');
+  },
+  
+  // Создать поездку (для водителей)
+  createTrip: (data) => {
+    return api.post('/trips/', data);
+  },
+  
+  // Обновить статус поездки (для водителей)
+  updateTripStatus: (tripId, status) => {
+    return api.patch(`/trips/${tripId}/`, { status });
   },
 };
 

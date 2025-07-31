@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,6 +26,7 @@ import { authAPI, ridesAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 
 function PassengerProfileContent() {
+  console.log('PassengerProfileContent rendered!');
   const router = useRouter();
   const { user, updateUser } = useAuthStore();
   const [profilePhoto, setProfilePhoto] = useState(user?.photo || null);
@@ -33,20 +34,53 @@ function PassengerProfileContent() {
   const fileInputRef = useRef(null);
   const queryClient = useQueryClient();
 
-  // Форма профиля
+  // Загружаем актуальный профиль при входе на страницу
+  const { data: profileData, isLoading: profileLoading, error: profileError } = useQuery({
+    queryKey: ['profile'],
+    queryFn: authAPI.getProfile,
+    select: (data) => data.data,
+    onSuccess: (data) => {
+      console.log('Profile loaded successfully:', data); // ОТЛАДКА
+      updateUser(data);
+    },
+    onError: (error) => {
+      console.error('Profile loading failed:', error); // ОТЛАДКА
+    },
+    retry: 1,
+  });
+
+  // ОТЛАДКА - показываем что происходит
+  console.log('Profile loading state:', { profileLoading, profileError, profileData });
+
+  // Форма с правильными полями
   const {
     register,
     handleSubmit,
     formState: { errors, isDirty },
-    watch
+    watch,
+    reset
   } = useForm({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
-      name: user?.name || '',
-      email: user?.email || '',
-      telegram: user?.telegram || '',
+      first_name: '',
+      last_name: '',
+      email: '',
+      phone: '',
     },
   });
+
+  // Обновляем форму когда получили данные
+  useEffect(() => {
+    if (profileData) {
+      console.log('Updating form with profile data:', profileData); // ОТЛАДКА
+      reset({
+        first_name: profileData.first_name || '',
+        last_name: profileData.last_name || '',
+        email: profileData.email || '',
+        phone: profileData.phone || '',
+      });
+    }
+  }, [profileData, reset]);
 
   // Загружаем историю поездок пассажира (безопасно)
   const { data: userBookings = [] } = useQuery({
@@ -77,9 +111,10 @@ function PassengerProfileContent() {
     reader.onload = (e) => {
       setProfilePhoto(e.target.result);
       updateProfileMutation.mutate({
-        name: watch('name'),
+        first_name: watch('first_name'),
+        last_name: watch('last_name'),
         email: watch('email'),
-        telegram: watch('telegram'),
+        phone: watch('phone'),
         photo: e.target.result,
       });
     };
@@ -93,6 +128,48 @@ function PassengerProfileContent() {
       photo: profilePhoto,
     });
   };
+
+  // Показываем загрузку только первые несколько секунд
+  if (profileLoading && !profileData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-amber-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600 mx-auto mb-4"></div>
+          <p className="text-gray-700">Загружаем профиль...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Показываем ошибку если не удалось загрузить
+  if (profileError && !profileData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-amber-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Ошибка загрузки профиля
+          </h2>
+          <p className="text-gray-600 mb-4">
+            {profileError?.response?.data?.detail || profileError.message || 'Неизвестная ошибка'}
+          </p>
+          <div className="space-x-2">
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+            >
+              Обновить
+            </button>
+            <button 
+              onClick={() => router.push('/')}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              На главную
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -127,7 +204,7 @@ function PassengerProfileContent() {
           {/* Основная информация */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl border border-yellow-200 shadow-lg overflow-hidden">
-              <div className="px-6 py-4 bg-gradient-to-r from-blue-400 to-blue-500 text-white">
+              <div className="px-6 py-4 bg-gradient-to-r from-yellow-400 to-amber-500 text-white">
                 <h2 className="text-xl font-semibold">Личная информация</h2>
                 <p className="text-white/80 text-sm">Управляйте своими данными как пассажир</p>
               </div>
@@ -167,15 +244,20 @@ function PassengerProfileContent() {
                       />
                     </div>
                     <div>
-                      <h3 className="text-lg font-medium text-gray-900">{user?.name || 'Имя не указано'}</h3>
-                      <p className="text-sm text-gray-600">{user?.phone || 'Телефон не указан'}</p>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        {profileData?.first_name && profileData?.last_name 
+                          ? `${profileData.first_name} ${profileData.last_name}`
+                          : profileData?.username || 'Имя не указано'
+                        }
+                      </h3>
+                      <p className="text-sm text-gray-600">{profileData?.phone || 'Телефон не указан'}</p>
                       <span className="inline-block mt-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
                         Пассажир
                       </span>
                     </div>
                   </div>
 
-                  {/* Поля формы - те же что и раньше */}
+                  {/* Поля формы с реальными данными */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Имя *</label>
                     <input
@@ -184,12 +266,47 @@ function PassengerProfileContent() {
                         block w-full px-3 py-2 border rounded-lg shadow-sm
                         transition-all duration-200 placeholder:text-gray-400
                         focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500
-                        ${errors.name ? 'border-red-300' : 'border-gray-300 hover:border-yellow-300'}
+                        ${errors.first_name ? 'border-red-300' : 'border-gray-300 hover:border-yellow-300'}
                       `}
-                      {...register('name')}
+                      {...register('first_name')}
                     />
-                    {errors.name && (
-                      <p className="text-sm text-red-600">{errors.name.message}</p>
+                    {errors.first_name && (
+                      <p className="text-sm text-red-600">{errors.first_name.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Фамилия *</label>
+                    <input
+                      placeholder="Введите вашу фамилию"
+                      className={`
+                        block w-full px-3 py-2 border rounded-lg shadow-sm
+                        transition-all duration-200 placeholder:text-gray-400
+                        focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500
+                        ${errors.last_name ? 'border-red-300' : 'border-gray-300 hover:border-yellow-300'}
+                      `}
+                      {...register('last_name')}
+                    />
+                    {errors.last_name && (
+                      <p className="text-sm text-red-600">{errors.last_name.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Телефон</label>
+                    <input
+                      type="tel"
+                      placeholder="+7XXXXXXXXXX"
+                      className={`
+                        block w-full px-3 py-2 border rounded-lg shadow-sm
+                        transition-all duration-200 placeholder:text-gray-400
+                        focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500
+                        ${errors.phone ? 'border-red-300' : 'border-gray-300 hover:border-yellow-300'}
+                      `}
+                      {...register('phone')}
+                    />
+                    {errors.phone && (
+                      <p className="text-sm text-red-600">{errors.phone.message}</p>
                     )}
                   </div>
 
@@ -212,24 +329,7 @@ function PassengerProfileContent() {
                     <p className="text-sm text-gray-500">Для восстановления доступа</p>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Telegram</label>
-                    <input
-                      placeholder="@username"
-                      className={`
-                        block w-full px-3 py-2 border rounded-lg shadow-sm
-                        transition-all duration-200 placeholder:text-gray-400
-                        focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500
-                        ${errors.telegram ? 'border-red-300' : 'border-gray-300 hover:border-yellow-300'}
-                      `}
-                      {...register('telegram')}
-                    />
-                    {errors.telegram && (
-                      <p className="text-sm text-red-600">{errors.telegram.message}</p>
-                    )}
-                  </div>
-
-                  {/* Синяя кнопка для пассажира */}
+                  {/* Желтая кнопка для пассажира */}
                   <button
                     type="submit"
                     disabled={!isDirty || updateProfileMutation.isPending}
@@ -336,7 +436,7 @@ function PassengerProfileContent() {
                     <div className="flex items-center space-x-1">
                       <Star className="w-4 h-4 text-yellow-500 fill-current" />
                       <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-                        {user?.rating || '5.0'}
+                        {profileData?.rating || user?.rating || '5.0'}
                       </span>
                     </div>
                   </div>
@@ -356,12 +456,12 @@ function PassengerProfileContent() {
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
                     <Phone className="w-4 h-4 text-amber-600" />
-                    <span className="text-sm text-gray-800">{user?.phone || 'Не указан'}</span>
+                    <span className="text-sm text-gray-800">{profileData?.phone || user?.phone || 'Не указан'}</span>
                   </div>
-                  {user?.email && (
+                  {(profileData?.email || user?.email) && (
                     <div className="flex items-center space-x-3">
                       <Mail className="w-4 h-4 text-amber-600" />
-                      <span className="text-sm text-gray-800">{user?.email}</span>
+                      <span className="text-sm text-gray-800">{profileData?.email || user?.email}</span>
                     </div>
                   )}
                   {user?.telegram && (

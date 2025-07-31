@@ -8,8 +8,16 @@ import DriverProfileContent from '../../components/profile/DriverProfileContent'
 import PassengerProfileContent from '../../components/profile/PassengerProfileContent';
 
 function ProfilePage() {
+    console.log('ProfilePage rendered!');
   const router = useRouter();
   const { user, isAuthenticated, isDriver, isPassenger, isHydrated } = useAuthStore();
+
+    console.log('Profile page state:', { 
+    isAuthenticated, 
+    isHydrated, 
+    userRole: user?.role,
+    user 
+  });
 
   // Проверяем авторизацию ТОЛЬКО после гидратации
   useEffect(() => {

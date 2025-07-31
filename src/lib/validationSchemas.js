@@ -75,15 +75,15 @@ export const verifySMSSchema = z.object({
 
 // Схема для обновления профиля
 export const updateProfileSchema = z.object({
-  first_name: z
+first_name: z
     .string()
     .min(2, 'Имя должно содержать минимум 2 символа')
-    .max(50, 'Имя не должно превышать 50 символов'),
+    .max(150, 'Имя не должно превышать 150 символов'),
   
   last_name: z
     .string()
     .min(2, 'Фамилия должна содержать минимум 2 символа')
-    .max(50, 'Фамилия не должна превышать 50 символов'),
+    .max(150, 'Фамилия не должна превышать 150 символов'),
   
   email: z
     .string()
@@ -91,9 +91,8 @@ export const updateProfileSchema = z.object({
     .optional()
     .or(z.literal('')),
   
-  phone_number: z
+  phone: z
     .string()
-    .regex(/^\+7\d{10}$/, 'Введите корректный номер телефона')
     .optional()
     .or(z.literal('')),
 

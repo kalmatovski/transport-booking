@@ -3,7 +3,25 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Car, MapPin, Calendar, Users, Settings, LogOut, Menu, X, User, BookOpen, UserPlus } from 'lucide-react';
+import { 
+  Car, 
+  MapPin, 
+  Calendar, 
+  Users, 
+  Settings, 
+  LogOut, 
+  Menu, 
+  X, 
+  User, 
+  BookOpen, 
+  UserPlus,
+  Search,
+  Clock,
+  Phone,
+  MessageCircle,
+  Star,
+  DollarSign
+} from 'lucide-react';
 
 import { useAuthStore } from '../store/authStore';
 import { ridesAPI } from '../lib/api';
@@ -17,509 +35,451 @@ export default function HomePage() {
   const [passengers, setPassengers] = useState(1);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Загружаем маршруты (доступно для всех)
-  const { data: routes = [], isLoading: routesLoading } = useQuery({
-    queryKey: ['routes'],
-    queryFn: ridesAPI.getRoutes,
-    select: (data) => data.data,
+  // Загружаем доступные поездки с фильтрацией по времени
+  const { 
+    data: availableTrips = [], 
+    isLoading: tripsLoading,
+    error: tripsError,
+    refetch: refetchTrips
+  } = useQuery({
+    queryKey: ['available-trips', selectedRoute, selectedDate],
+    queryFn: () => ridesAPI.getAvailableTrips(selectedRoute, selectedDate),
+    select: (data) => {
+      const trips = data?.data || [];
+      // Фильтруем поездки - показываем только будущие
+      const now = new Date();
+      return trips.filter(trip => {
+        const departureTime = new Date(trip.departure_time);
+        return departureTime > now; // Только будущие поездки
+      });
+    },
+    enabled: true,
   });
 
-  // Загружаем доступных водителей (доступно для всех)
-  const { 
-    data: availableDrivers = [], 
-    isLoading: driversLoading,
-    error: driversError 
-  } = useQuery({
-    queryKey: ['available-drivers', selectedRoute, selectedDate],
-    queryFn: () => ridesAPI.getAvailableDrivers(selectedRoute, selectedDate),
-    enabled: !!selectedRoute && !!selectedDate,
-    select: (data) => data.data,
+  // Загружаем маршруты (пока хардкод, не критично если не загрузится)
+  const { data: routes = [] } = useQuery({
+    queryKey: ['routes'],
+    queryFn: ridesAPI.getRoutes,
+    select: (data) => data?.data || [],
+    retry: false,
   });
 
   const handleLogout = () => {
     logout();
-    // Остаемся на главной странице после выхода
+    router.push('/login');
   };
 
-  const handleSearchRides = () => {
-    if (!selectedRoute || !selectedDate) {
-      return;
-    }
-    // Логика поиска поездок выполняется автоматически через React Query
+  const handleSearch = () => {
+    // Просто перезагружаем с новыми параметрами
+    refetchTrips();
   };
 
-  const handleBookingClick = (driverId) => {
+  const handleBooking = (trip) => {
     if (!isAuthenticated) {
-      // Перенаправляем на регистрацию если не авторизован
-      router.push('/register');
+      router.push('/login');
       return;
     }
-    // Если авторизован, переходим к бронированию
-    router.push(`/book/${driverId}?route=${selectedRoute}&date=${selectedDate}&passengers=${passengers}`);
+    
+    // Переходим на страницу бронирования
+    router.push(`/booking/${trip.id}?passengers=${passengers}`);
   };
 
-  // Получаем текущую дату для min атрибута
-  const today = new Date().toISOString().split('T')[0];
+  const formatTime = (dateTimeString) => {
+    if (!dateTimeString) return '';
+    return new Date(dateTimeString).toLocaleTimeString('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
-  // Навигационные элементы для авторизованных пользователей
-  const navigationItems = [
-    { 
-      label: 'Забронировать поездку', 
-      href: '/', 
-      icon: Car, 
-      active: true 
-    },
-    { 
-      label: 'Мои бронирования', 
-      href: '/bookings', 
-      icon: BookOpen, 
-      active: false 
-    },
-    { 
-      label: 'Панель водителя', 
-      href: '/driver', 
-      icon: Settings, 
-      active: false 
-    },
-  ];
+  const formatDate = (dateTimeString) => {
+    if (!dateTimeString) return '';
+    return new Date(dateTimeString).toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const formatDateTime = (dateTimeString) => {
+    if (!dateTimeString) return '';
+    const date = new Date(dateTimeString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return `Сегодня, ${formatTime(dateTimeString)}`;
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return `Завтра, ${formatTime(dateTimeString)}`;
+    } else {
+      return `${formatDate(dateTimeString)}, ${formatTime(dateTimeString)}`;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'available':
+        return 'bg-green-100 text-green-800';
+      case 'full':
+        return 'bg-red-100 text-red-800';
+      case 'in_road':
+        return 'bg-blue-100 text-blue-800';
+      case 'finished':
+        return 'bg-gray-100 text-gray-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'available':
+        return 'Свободен';
+      case 'full':
+        return 'Заполнен';
+      case 'in_road':
+        return 'В пути';
+      case 'finished':
+        return 'Завершена';
+      case 'cancelled':
+        return 'Отменена';
+      default:
+        return status;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-golden-50 via-warm-orange-50 to-sky-50">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-amber-50">
       {/* Хедер */}
-      {/* Хедер */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+      <header className="bg-white/90 backdrop-blur-sm shadow-sm border-b border-yellow-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex items-center justify-between h-16">
             {/* Логотип */}
             <div className="flex items-center space-x-2">
-              <Car className="h-8 w-8 text-golden-600" />
+              <Car className="h-8 w-8 text-yellow-600" />
               <span className="text-xl font-bold text-gray-900">TransportBook</span>
             </div>
 
-            {/* Навигация для авторизованных */}
-            {isAuthenticated && (
-              <div className="hidden md:flex space-x-6">
-                {navigationItems.map((item) => (
-                  <button
-                    key={item.href}
-                    onClick={() => router.push(item.href)}
-                    className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                      item.active
-                        ? 'text-golden-600 bg-golden-50'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Правая часть хедера */}
-            <div className="flex items-center space-x-3">
+            {/* Навигация */}
+            <div className="hidden md:flex items-center space-x-4">
               {isAuthenticated ? (
-                /* Для авторизованных пользователей */
                 <>
-                  {/* Десктопная версия */}
-                  <div className="hidden md:flex items-center space-x-3">
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                      <p className="text-xs text-gray-500">{user?.phone}</p>
-                    </div>
-                    
-                    <div className="flex items-center space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => router.push('/profile')}
-                        className="p-2"
-                        title="Профиль"
-                      >
-                        <User className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleLogout}
-                        className="p-2"
-                        title="Выйти"
-                      >
-                        <LogOut className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Мобильное меню для авторизованных */}
-                  <div className="md:hidden">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                      className="p-2"
-                    >
-                      {mobileMenuOpen ? (
-                        <X className="h-5 w-5" />
-                      ) : (
-                        <Menu className="h-5 w-5" />
-                      )}
-                    </Button>
-                  </div>
+                  <span className="text-sm text-gray-600">
+                    Привет, {user?.name || 'Пользователь'}!
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.push('/profile')}
+                    className="flex items-center space-x-1"
+                  >
+                    <User className="h-4 w-4" />
+                    <span>Профиль</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="flex items-center space-x-1"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Выйти</span>
+                  </Button>
                 </>
               ) : (
-                /* Для гостей */
                 <>
-                  {/* Десктопная версия */}
-                  <div className="hidden md:flex items-center space-x-3">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => router.push('/login')}
-                    >
-                      Войти
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => router.push('/register')}
-                      className="bg-golden-500 hover:bg-golden-600 text-white"
-                    >
-                      Регистрация
-                    </Button>
-                  </div>
-
-                  {/* Мобильная версия для гостей */}
-                  <div className="md:hidden">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                      className="p-2"
-                    >
-                      {mobileMenuOpen ? (
-                        <X className="h-5 w-5" />
-                      ) : (
-                        <Menu className="h-5 w-5" />
-                      )}
-                    </Button>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => router.push('/login')}
+                  >
+                    Войти
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => router.push('/register')}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                  >
+                    Регистрация
+                  </Button>
                 </>
               )}
             </div>
+
+            {/* Мобильное меню */}
+            <div className="md:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            </div>
           </div>
-        </div>
 
-        {/* Мобильное меню */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-t border-gray-200">
-            <div className="px-4 py-3 space-y-3">
-              {isAuthenticated ? (
-                /* Мобильное меню для авторизованных */
-                <>
-                  {/* Информация о пользователе */}
-                  <div className="flex items-center space-x-3 py-2 border-b border-gray-100">
-                    <div className="w-10 h-10 bg-golden-100 rounded-full flex items-center justify-center">
-                      <User className="w-5 h-5 text-golden-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                      <p className="text-xs text-gray-500">{user?.phone}</p>
-                    </div>
-                  </div>
-
-                  {/* Навигационные элементы */}
-                  {navigationItems.map((item) => (
+          {/* Мобильное меню */}
+          {mobileMenuOpen && (
+            <div className="md:hidden border-t border-gray-200 bg-white py-4">
+              <div className="space-y-2">
+                {isAuthenticated ? (
+                  <>
                     <button
-                      key={item.href}
-                      onClick={() => {
-                        router.push(item.href);
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`flex items-center space-x-3 w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                        item.active
-                          ? 'text-golden-600 bg-golden-50'
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                      }`}
+                      onClick={() => router.push('/profile')}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.label}</span>
+                      Профиль
                     </button>
-                  ))}
-
-                  {/* Кнопки профиля и выхода */}
-                  <div className="pt-2 border-t border-gray-100 space-y-2">
-                    <button
-                      onClick={() => {
-                        router.push('/profile');
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex items-center space-x-3 w-full px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
-                    >
-                      <User className="w-4 h-4" />
-                      <span>Профиль</span>
-                    </button>
-                    
                     <button
                       onClick={handleLogout}
-                      className="flex items-center space-x-3 w-full px-3 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
-                      <LogOut className="w-4 h-4" />
-                      <span>Выйти</span>
+                      Выйти
                     </button>
-                  </div>
-                </>
-              ) : (
-                /* Мобильное меню для гостей */
-                <div className="space-y-3">
-                  <button
-                    onClick={() => {
-                      router.push('/login');
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex items-center space-x-3 w-full px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    <User className="w-4 h-4" />
-                    <span>Войти</span>
-                  </button>
-                  <Button
-                      size="sm"
-                      onClick={() => {
-                      router.push('/register');
-                      setMobileMenuOpen(false);
-                    }}
-                      className="bg-golden-500 hover:bg-golden-600 text-white"
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => router.push('/login')}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
-                    <UserPlus className="w-4 h-4" />
+                      Войти
+                    </button>
+                    <button
+                      onClick={() => router.push('/register')}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
                       Регистрация
-                    </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </header>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        {/* Заголовок и описание */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-golden-600 via-warm-orange-600 to-golden-700 bg-clip-text sm:text-4xl mb-4">
-            Забронируйте вашу поездку
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Удобное и надежное бронирование поездок.
-            Выбирайте из наших проверенных водителей и современных автомобилей.
-          </p>
-          {!isAuthenticated && (
-            <div className="mt-6 p-4 bg-gradient-to-r from-golden-100 to-warm-orange-100 rounded-lg border border-golden-200">
-              <p className="text-golden-800 text-sm">
-                💡 <strong>Гостевой режим:</strong> Просматривайте поездки без регистрации. 
-                Для бронирования нужно <button 
-                  onClick={() => router.push('/register')} 
-                  className="underline hover:text-golden-900 font-medium"
-                >
-                  зарегистрироваться
-                </button>.
-              </p>
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           )}
         </div>
+      </header>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Форма поиска */}
-          <div className="lg:col-span-1">
-            <Card className="bg-white/80 backdrop-blur-sm border-golden-200 shadow-xl">
-              <CardContent className="p-6">
-                <div className="mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                    Найти поездку
-                  </h2>
-                  <p className="text-sm text-gray-600">
-                    Найдите доступные автомобили на вашем маршруте и в нужную дату
-                  </p>
-                </div>
+      {/* Основной контент */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Форма поиска */}
+        <div className="bg-white rounded-xl shadow-lg border border-yellow-200 p-6 mb-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+            Найти поездку
+          </h1>
+          
+          <div className="grid md:grid-cols-4 gap-4 mb-6">
+            {/* Выбор маршрута */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Маршрут
+              </label>
+              <select
+                value={selectedRoute}
+                onChange={(e) => setSelectedRoute(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+              >
+                <option value="">Все маршруты</option>
+                <option value="1">Красноярск → Абакан</option>
+                <option value="2">Абакан → Красноярск</option>
+              </select>
+            </div>
 
-                <div className="space-y-5">
-                  {/* Выбор маршрута */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <MapPin className="inline w-4 h-4 mr-1 text-golden-600" />
-                      Маршрут
-                    </label>
-                    {routesLoading ? (
-                      <div className="flex items-center justify-center p-4">
-                        <LoadingSpinner size="sm" />
-                      </div>
-                    ) : (
-                      <select
-                        value={selectedRoute}
-                        onChange={(e) => setSelectedRoute(e.target.value)}
-                        className="w-full px-3 py-2 border border-golden-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-transparent transition-colors"
-                      >
-                        <option value="">Выберите маршрут</option>
-                        {routes.map((route) => (
-                          <option key={route.id} value={route.id}>
-                            {route.from} — {route.to}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
+            {/* Выбор даты */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Дата
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+              />
+            </div>
 
-                  {/* Выбор даты */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Calendar className="inline w-4 h-4 mr-1 text-golden-600" />
-                      Дата поездки
-                    </label>
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      min={today}
-                      className="w-full px-3 py-2 border border-golden-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-transparent transition-colors"
-                    />
-                  </div>
+            {/* Количество пассажиров */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Пассажиров
+              </label>
+              <select
+                value={passengers}
+                onChange={(e) => setPassengers(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
+                  <option key={num} value={num}>{num}</option>
+                ))}
+              </select>
+            </div>
 
-                  {/* Количество пассажиров */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      <Users className="inline w-4 h-4 mr-1 text-golden-600" />
-                      Пассажиры
-                    </label>
-                    <select
-                      value={passengers}
-                      onChange={(e) => setPassengers(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-golden-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-golden-500 focus:border-transparent transition-colors"
-                    >
-                      {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
-                        <option key={num} value={num}>
-                          {num} {num === 1 ? 'пассажир' : num < 5 ? 'пассажира' : 'пассажиров'}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <Button
-                    onClick={handleSearchRides}
-                    className="w-full bg-gradient-to-r from-golden-500 to-warm-orange-500 hover:from-golden-600 hover:to-warm-orange-600 text-white shadow-lg"
-                    disabled={!selectedRoute || !selectedDate}
-                  >
-                    Найти поездки
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Результаты поиска */}
-          <div className="lg:col-span-2">
-            <div className="space-y-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Доступные автомобили
-              </h2>
-
-              {!selectedRoute || !selectedDate ? (
-                <Card className="bg-white/80 backdrop-blur-sm border-golden-200">
-                  <CardContent className="p-8 text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-golden-400 to-warm-orange-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Car className="h-8 w-8 text-white" />
-                    </div>
-                    <p className="text-gray-500">
-                      Выберите маршрут и дату для поиска доступных автомобилей
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : driversLoading ? (
-                <Card className="bg-white/80 backdrop-blur-sm border-golden-200">
-                  <CardContent className="p-8 text-center">
-                    <LoadingSpinner size="lg" className="mx-auto mb-4" />
-                    <p className="text-gray-500">Ищем доступные автомобили...</p>
-                  </CardContent>
-                </Card>
-              ) : driversError ? (
-                <Alert variant="error" className="bg-red-50 border-red-200">
-                  Ошибка загрузки данных. Попробуйте еще раз.
-                </Alert>
-              ) : availableDrivers.length === 0 ? (
-                <Card className="bg-white/80 backdrop-blur-sm border-golden-200">
-                  <CardContent className="p-8 text-center">
-                    <div className="w-16 h-16 bg-gradient-to-br from-golden-400 to-warm-orange-400 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Car className="h-8 w-8 text-white" />
-                    </div>
-                    <p className="text-gray-500 mb-2">
-                      На выбранную дату нет доступных автомобилей
-                    </p>
-                    <p className="text-sm text-gray-400">
-                      Попробуйте выбрать другую дату
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {availableDrivers.map((driver) => (
-                    <Card key={driver.id} className="bg-white/80 backdrop-blur-sm border-golden-200 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
-                      <CardContent className="p-6">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-                          <div className="flex space-x-4">
-                            {/* Фото автомобиля */}
-                            <div className="flex-shrink-0">
-                              <div className="w-20 h-20 bg-gradient-to-br from-golden-200 to-warm-orange-200 rounded-lg overflow-hidden">
-                                {driver.car_photo ? (
-                                  <img
-                                    src={driver.car_photo}
-                                    alt={`${driver.car_model}`}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <Car className="w-8 h-8 text-golden-600" />
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Информация о водителе */}
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-lg font-medium text-gray-900">
-                                {driver.name}
-                              </h3>
-                              <p className="text-sm text-gray-600">
-                                {driver.car_model} • {driver.car_color}
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                Рейтинг: ⭐ {driver.rating || 'Новый водитель'}
-                              </p>
-                              <p className="text-sm text-golden-600 font-medium">
-                                Свободных мест: {driver.available_seats}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Кнопка бронирования */}
-                          <div className="flex-shrink-0">
-                            <Button
-                              onClick={() => handleBookingClick(driver.id)}
-                              disabled={driver.available_seats < passengers}
-                              className={`${
-                                driver.available_seats < passengers 
-                                  ? 'bg-gray-400 cursor-not-allowed' 
-                                  : 'bg-gradient-to-r from-golden-500 to-warm-orange-500 hover:from-golden-600 hover:to-warm-orange-600 shadow-lg hover:shadow-xl'
-                              } text-white transition-all duration-300`}
-                            >
-                              {driver.available_seats < passengers 
-                                ? 'Недостаточно мест' 
-                                : isAuthenticated 
-                                  ? 'Забронировать'
-                                  : 'Зарегистрироваться'}
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+            {/* Кнопка поиска */}
+            <div className="flex items-end">
+              <Button
+                onClick={handleSearch}
+                className="w-full bg-yellow-600 hover:bg-yellow-700 text-white flex items-center justify-center"
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Найти
+              </Button>
             </div>
           </div>
         </div>
-      </div>
+
+        {/* Результаты поиска */}
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-6">
+            Доступные поездки
+          </h2>
+
+          {tripsLoading && (
+            <div className="flex justify-center py-8">
+              <LoadingSpinner size="lg" />
+            </div>
+          )}
+
+          {tripsError && (
+            <Alert variant="error" className="mb-6">
+              Ошибка загрузки поездок: {tripsError.message}
+            </Alert>
+          )}
+
+          {!tripsLoading && availableTrips.length === 0 && (
+            <div className="text-center py-12">
+              <Car className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Поездок не найдено
+              </h3>
+              <p className="text-gray-600">
+                Попробуйте изменить параметры поиска
+              </p>
+            </div>
+          )}
+
+          {/* Список поездок */}
+          <div className="grid gap-6">
+            {availableTrips.map((trip) => (
+              <Card key={trip.id} className="border-yellow-200 hover:shadow-lg transition-shadow">
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between">
+                    {/* Информация о поездке */}
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-4 mb-4">
+                        {/* Время отправления */}
+                        <div className="flex items-center space-x-2">
+                          <Clock className="w-4 h-4 text-yellow-600" />
+                          <div>
+                            <span className="font-medium text-gray-900">
+                              Отправление
+                            </span>
+                            <p className="text-sm text-gray-600">
+                              {formatDateTime(trip.departure_time)}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Время прибытия */}
+                        {trip.arrival_time && (
+                          <div className="flex items-center space-x-2">
+                            <MapPin className="w-4 h-4 text-gray-400" />
+                            <div>
+                              <span className="font-medium text-gray-900">
+                                Прибытие
+                              </span>
+                              <p className="text-sm text-gray-600">
+                                {formatDateTime(trip.arrival_time)}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Статус */}
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(trip.status)}`}>
+                          {getStatusText(trip.status)}
+                        </span>
+                      </div>
+
+                      <div className="grid md:grid-cols-3 gap-4">
+                        {/* Водитель */}
+                        <div>
+                          <p className="text-sm text-gray-600">Водитель</p>
+                          <p className="font-medium">Водитель #{trip.driver}</p>
+                          <div className="flex items-center space-x-1 mt-1">
+                            <Star className="w-3 h-3 text-yellow-500 fill-current" />
+                            <span className="text-xs text-gray-600">4.8</span>
+                          </div>
+                        </div>
+
+                        {/* Автомобиль */}
+                        <div>
+                          <p className="text-sm text-gray-600">Автомобиль</p>
+                          <p className="font-medium">Авто #{trip.car}</p>
+                          <p className="text-xs text-gray-500">Номер не указан</p>
+                        </div>
+
+                        {/* Места и цена */}
+                        <div>
+                          <p className="text-sm text-gray-600">Свободно мест</p>
+                          <p className="font-medium flex items-center">
+                            <Users className="w-4 h-4 mr-1 text-gray-500" />
+                            {trip.available_seats}
+                          </p>
+                          <p className="text-lg font-bold text-yellow-600 mt-1">
+                            {parseFloat(trip.price).toLocaleString('ru-RU')} ₽
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Примечания */}
+                      {trip.notes && (
+                        <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                          <p className="text-sm text-gray-700">{trip.notes}</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Действия */}
+                    <div className="mt-4 md:mt-0 md:ml-6 flex flex-col space-y-2 min-w-[200px]">
+                      {/* Контакты - пока скрываем так как нет данных водителя */}
+                      <div className="flex space-x-2">
+                        <button className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                          <Phone className="w-4 h-4 mr-1" />
+                          <span className="text-sm">Позвонить</span>
+                        </button>
+                        <button className="flex-1 flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                          <MessageCircle className="w-4 h-4 mr-1" />
+                          <span className="text-sm">Написать</span>
+                        </button>
+                      </div>
+
+                      {/* Кнопка бронирования */}
+                      <Button
+                        onClick={() => handleBooking(trip)}
+                        disabled={trip.status !== 'available' || trip.available_seats < passengers}
+                        className={`w-full ${
+                          trip.status === 'available' && trip.available_seats >= passengers
+                            ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        {trip.status !== 'available' 
+                          ? 'Недоступно'
+                          : trip.available_seats < passengers
+                          ? 'Мало мест'
+                          : 'Забронировать'
+                        }
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

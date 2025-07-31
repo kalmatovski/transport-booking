@@ -36,15 +36,23 @@ function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: authAPI.login,
    onSuccess: async (response) => {
-  // Django JWT возвращает access, refresh и user с ролью
+  // Django JWT возвращает access и refresh токены + роль
   const { access, refresh, user } = response.data;
   
-  // Сохраняем токены и минимальные данные пользователя (только роль)
-  const minimalUser = {
-    role: user.role
-  };
+  // Сохраняем токены и роль
+  login(user, access, refresh);
   
-  login(minimalUser, access, refresh);
+  // Теперь загружаем полный профиль
+  try {
+    const profileResponse = await authAPI.getProfile();
+    const fullUserData = profileResponse.data;
+    
+    // Обновляем пользователя полными данными
+    useAuthStore.getState().setUser(fullUserData);
+  } catch (error) {
+    console.error('Failed to fetch profile:', error);
+    // Если не удалось загрузить профиль, все равно входим с базовыми данными
+  }
   
   // Перенаправляем на главную
   router.push('/');

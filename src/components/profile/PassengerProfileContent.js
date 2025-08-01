@@ -26,7 +26,6 @@ import { authAPI, ridesAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 
 function PassengerProfileContent() {
-  console.log('PassengerProfileContent rendered!');
   const router = useRouter();
   const { user, updateUser } = useAuthStore();
   const [profilePhoto, setProfilePhoto] = useState(user?.photo || null);
@@ -49,9 +48,6 @@ function PassengerProfileContent() {
     retry: 1,
   });
 
-  // ОТЛАДКА - показываем что происходит
-  console.log('Profile loading state:', { profileLoading, profileError, profileData });
-
   // Форма с правильными полями
   const {
     register,
@@ -72,7 +68,6 @@ function PassengerProfileContent() {
   // Обновляем форму когда получили данные
   useEffect(() => {
     if (profileData) {
-      console.log('Updating form with profile data:', profileData); // ОТЛАДКА
       reset({
         first_name: profileData.first_name || '',
         last_name: profileData.last_name || '',

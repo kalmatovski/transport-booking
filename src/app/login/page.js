@@ -32,31 +32,22 @@ function LoginPage() {
     },
   });
 
-  // Мутация входа
+  // Мутация входа - УПРОЩЕНО
   const loginMutation = useMutation({
     mutationFn: authAPI.login,
-   onSuccess: async (response) => {
-  // Django JWT возвращает access и refresh токены + роль
-  const { access, refresh, user } = response.data;
-  
-  // Сохраняем токены и роль
-  login(user, access, refresh);
-  
-  // Теперь загружаем полный профиль
-  try {
-    const profileResponse = await authAPI.getProfile();
-    const fullUserData = profileResponse.data;
-    
-    // Обновляем пользователя полными данными
-    useAuthStore.getState().setUser(fullUserData);
-  } catch (error) {
-    console.error('Failed to fetch profile:', error);
-    // Если не удалось загрузить профиль, все равно входим с базовыми данными
-  }
-  
-  // Перенаправляем на главную
-  router.push('/');
-},
+    onSuccess: async (response) => {
+      // Django JWT возвращает access и refresh токены + роль
+      const { access, refresh, user } = response.data;
+      
+      // Сохраняем токены и роль
+      login(user, access, refresh);
+      
+      // НЕ ДЕЛАЕМ дополнительный запрос профиля здесь!
+      // Профиль загрузится на нужной странице автоматически
+      
+      // Перенаправляем на главную
+      router.push('/');
+    },
     onError: (error) => {
       console.error('Login error:', error);
     }

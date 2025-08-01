@@ -28,11 +28,11 @@ export const useAuthStore = create(
         });
       },
       
-      // Обновление пользователя (когда получим профиль)
+      // Обновление пользователя (когда получим профиль) - ИСПРАВЛЕНО
       setUser: (userData) => {
-        set({
-          user: userData,
-        });
+        set(state => ({
+          user: { ...state.user, ...userData }
+        }));
       },
       
       logout: () => {
@@ -57,7 +57,7 @@ export const useAuthStore = create(
       
       // Геттеры
       getUser: () => get().user,
-      getToken: () => get().accessToken, // Для совместимости с API клиентом
+      getToken: () => get().accessToken,
       getAccessToken: () => get().accessToken,
       getRefreshToken: () => get().refreshToken,
       isLoggedIn: () => get().isAuthenticated,
@@ -71,7 +71,6 @@ export const useAuthStore = create(
       // Проверка ролей
       isDriver: () => get().user?.role === 'driver',
       isPassenger: () => get().user?.role === 'passenger',
-    //   isAdmin: () => get().user?.role === 'admin',
     }),
     {
       name: 'auth-storage',
@@ -79,21 +78,39 @@ export const useAuthStore = create(
         if (typeof window !== 'undefined') {
           return localStorage;
         }
+        // Для сервера возвращаем пустое хранилище
         return {
           getItem: () => null,
           setItem: () => {},
           removeItem: () => {},
         };
       }),
+      
+      // ИСПРАВЛЕНО: Сохраняем только безопасные данные
       partialize: (state) => ({
-        user: state.user,
-        accessToken: state.accessToken,
+        // Сохраняем только refresh токен (он менее критичен)
         refreshToken: state.refreshToken,
+        // Сохраняем только роль пользователя (без персональных данных)
+        userRole: state.user?.role,
+        // Флаг авторизации
         isAuthenticated: state.isAuthenticated,
+        // ACCESS TOKEN и полный USER НЕ СОХРАНЯЕМ
       }),
+      
+      // ИСПРАВЛЕНО: Правильная гидратация
       onRehydrateStorage: () => (state) => {
         if (state) {
-          state.setHydrated();
+          // Восстанавливаем минимальные пользовательские данные
+          if (state.userRole && state.isAuthenticated) {
+            state.user = { role: state.userRole };
+          }
+          
+          // Помечаем как гидратированное с задержкой для избежания mismatch
+          setTimeout(() => {
+            if (state.setHydrated) {
+              state.setHydrated();
+            }
+          }, 0);
         }
       },
     }

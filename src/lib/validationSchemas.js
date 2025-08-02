@@ -96,6 +96,11 @@ first_name: z
     .optional()
     .or(z.literal('')),
 
+      avatar: z
+    .string()
+    .optional()
+    .or(z.literal('')),
+
       name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
   email: z.string().email('Введите корректный email').optional().or(z.literal('')),
   telegram: z.string().optional().or(z.literal('')),

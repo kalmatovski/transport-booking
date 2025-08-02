@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { all } from 'axios';
 import { useAuthStore } from '../store/authStore';
 
 // Создаем instance axios
@@ -105,9 +105,34 @@ export const authAPI = {
     return api.get('/auth/me/');
   },
   
-  // Обновление профиля
-  updateProfile: (data) => {
-    return api.patch('/auth/profile/', data);
+  // Обновление профиля (только текстовые данные)
+    updateProfile: (data) => {
+    const formData = new FormData();
+    
+    // Добавляем все поля как FormData
+    Object.keys(data).forEach(key => {
+      if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
+        formData.append(key, data[key]);
+      }
+    });
+    
+    return api.patch('/auth/me/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  // Обновление только аватара
+  updateAvatar: (file) => {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    
+    return api.patch('/auth/me/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
   },
 };
 
@@ -172,5 +197,108 @@ export const ridesAPI = {
     return api.patch(`/trips/${tripId}/`, { status });
   },
 };
+
+
+
+export const vehicleAPI = {
+  // Получить все автомобили
+  getAllVehicles: () => {
+    return api.get('/vehicles/');
+  },
+
+  // Получить автомобиль водителя (ищем по owner)
+  getMyVehicle: async () => {
+    try {
+      // Получаем текущего пользователя
+      const profileResponse = await api.get('/auth/me/');
+      const myUserId = profileResponse.data.id;
+      
+      // Получаем все машины
+      const vehiclesResponse = await api.get('/vehicles/');
+      const allVehicles = vehiclesResponse.data;
+      console.log("Cars",vehiclesResponse);
+      
+      
+      // Ищем свою машину по owner
+      const myVehicle = allVehicles.find(vehicle => vehicle.owner === myUserId);
+      
+      if (myVehicle) {
+        return { data: myVehicle };
+      } else {
+        // Возвращаем null вместо ошибки - машины просто нет
+        return { data: null };
+      }
+    } catch (error) {
+      // Если ошибка API - пробрасываем
+      throw error;
+    }
+  },
+
+  // Создать автомобиль
+  createVehicle: (data) => {
+    const formData = new FormData();
+    
+    // Добавляем поля автомобиля
+    Object.keys(data).forEach(key => {
+      if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
+        if (key === 'vehicle_image' && data[key] instanceof File) {
+          // Если это файл - добавляем как есть
+          formData.append(key, data[key]);
+        } else if (key !== 'vehicle_image') {
+          // Остальные поля как строки
+          formData.append(key, data[key]);
+        }
+      }
+    });
+    
+    return api.post('/vehicles/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  // Обновить автомобиль
+  updateVehicle: (vehicleId, data) => {
+    const formData = new FormData();
+    
+    // Добавляем поля автомобиля
+    Object.keys(data).forEach(key => {
+      if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
+        if (key === 'vehicle_image' && data[key] instanceof File) {
+          // Если это файл - добавляем как есть
+          formData.append(key, data[key]);
+        } else if (key !== 'vehicle_image') {
+          // Остальные поля как строки
+          formData.append(key, data[key]);
+        }
+      }
+    });
+    
+    return api.patch(`/vehicles/${vehicleId}/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  // Загрузить фото автомобиля
+  updateVehiclePhoto: (vehicleId, file) => {
+    const formData = new FormData();
+    formData.append('vehicle_image', file); // ИСПРАВЛЕНО: vehicle_image вместо photo
+    
+    return api.patch(`/vehicles/${vehicleId}/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  // Удалить автомобиль
+  deleteVehicle: (vehicleId) => {
+    return api.delete(`/vehicles/delete/${vehicleId}/`);
+  },
+};
+
 
 export default api;

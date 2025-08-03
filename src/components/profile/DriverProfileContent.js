@@ -1,224 +1,156 @@
+// src/components/profile/DriverProfileContent.js (УПРОЩЕННАЯ ВЕРСИЯ)
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { 
-  ArrowLeft, 
-  Camera, 
-  Car, 
-  Phone, 
-  Mail, 
-  MessageCircle, 
-  Star,
-  Check,
-  Save,
-  Loader2,
-  DollarSign,
-  Calendar,
-  Users,
-  MapPin,
-  Clock,
-  User
-} from 'lucide-react';
+import { Camera, Car, Save, Loader2, Calendar, Star, MapPin } from 'lucide-react';
 
 import { updateProfileSchema } from '../../lib/validationSchemas';
 import { authAPI, vehicleAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 
+// Используем те же переиспользуемые компоненты
+import { LoadingState, ErrorState, ProfileHeader, NotificationBanner } from './ProfileStates';
+
 function DriverProfileContent() {
   const router = useRouter();
   const { user, updateUser } = useAuthStore();
   
-  // Состояния
+  // Состояния (упрощено)
   const [profileData, setProfileData] = useState(null);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [vehicleData, setVehicleData] = useState(null);
   const [carPhoto, setCarPhoto] = useState(null);
-  const [selectedCarFile, setSelectedCarFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingVehicle, setSavingVehicle] = useState(false);
   const [deletingVehicle, setDeletingVehicle] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingCarPhoto, setUploadingCarPhoto] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState(null);
   
-  // Refs
   const fileInputRef = useRef(null);
-  const avatarInputRef = useRef(null);
+  const carPhotoInputRef = useRef(null);
 
-  // Форма для профиля
-  const {
-    register: registerProfile,
-    formState: { errors: profileErrors, isDirty: profileIsDirty },
-    watch: watchProfile,
-    reset: resetProfile
-  } = useForm({
+  // Формы (две отдельные формы)
+  const profileForm = useForm({
     resolver: zodResolver(updateProfileSchema),
-    defaultValues: {
-      first_name: '',
-      last_name: '',
-      email: '',
-      phone: '',
-    },
   });
 
-  // Форма для автомобиля
-  const {
-    register: registerVehicle,
-    formState: { errors: vehicleErrors, isDirty: vehicleIsDirty },
-    watch: watchVehicle,
-    reset: resetVehicle
-  } = useForm({
+  const vehicleForm = useForm({
     defaultValues: {
-      brand: '',
-      model: '',
-      color: '',
-      seats: '',
-      plate_number: '',
-    },
+      car_model: '',
+      car_number: '',
+      available_seats: 4,
+    }
   });
 
-  // Загружаем профиль при монтировании
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  // Загрузка профиля
+  // Загрузка данных
   const loadProfile = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Загружаем профиль пользователя
+      // Сначала загружаем профиль
       const profileResponse = await authAPI.getProfile();
-      const userData = profileResponse.data;
       
-      setProfileData(userData);
-      updateUser(userData);
+      setProfileData(profileResponse.data);
+      setProfilePhoto(profileResponse.data.avatar ? `http://127.0.0.1:8000${profileResponse.data.avatar}` : null);
+      profileForm.reset(profileResponse.data);
       
-      // Устанавливаем аватар профиля
-      if (userData.avatar) {
-        setProfilePhoto(`http://127.0.0.1:8000${userData.avatar}`);
-      } else {
-        setProfilePhoto(null);
-      }
-      
-      // Заполняем форму профиля
-      resetProfile({
-        first_name: userData.first_name || '',
-        last_name: userData.last_name || '',
-        email: userData.email || '',
-        phone: userData.phone || '',
-      });
-
-      // Загружаем данные автомобиля
+      // Затем загружаем автомобили
       try {
-        const vehicleResponse = await vehicleAPI.getMyVehicle();
-        const vehicleData = vehicleResponse.data;
+        // Используем исправленную версию getMyVehicle
+        const vehiclesResponse = await vehicleAPI.getAllVehicles();
+        const allVehicles = vehiclesResponse.data;
+        const myUserId = profileResponse.data.id;
         
-        if (vehicleData) {
-          setVehicleData(vehicleData);
-          console.log('Vehicle data loaded:', vehicleData);
-          
-          resetVehicle({
-            brand: vehicleData.brand || '',
-            model: vehicleData.model || '',
-            color: vehicleData.color || '',
-            seats: vehicleData.seats || '',
-            plate_number: vehicleData.plate_number || '',
+        // Ищем машину водителя по owner
+        const myVehicle = allVehicles.find(vehicle => vehicle.owner === myUserId);
+        
+          setVehicleData(myVehicle);
+          // ИСПРАВЛЕНИЕ: vehicle_image уже содержит полный URL
+          setCarPhoto(myVehicle.vehicle_image || null);
+          vehicleForm.reset({
+            brand: myVehicle.brand || '',
+            model: myVehicle.model || '',
+            color: myVehicle.color || '',
+            seats: myVehicle.seats || 4,
+            plate_number: myVehicle.plate_number || '',
           });
-          
-          if (vehicleData.vehicle_image) {
-            setCarPhoto(`http://127.0.0.1:8000${vehicleData.vehicle_image}`);
-          }
-        } else {
-          console.log('No vehicle found - driver can add one');
-          setVehicleData(null);
-          setCarPhoto(null);
-        }
-        
       } catch (vehicleError) {
-        console.error('Error loading vehicles:', vehicleError);
-        setError('Не удалось загрузить данные автомобилей');
+        console.log('🚨 Vehicles API error:', vehicleError);
       }
       
     } catch (err) {
-      console.error('Failed to load profile:', err);
-      setError(err.message || 'Ошибка загрузки профиля');
+      setError(err.response?.data?.detail || err.message || 'Ошибка загрузки профиля');
     } finally {
       setLoading(false);
     }
   };
 
-  // Обновление профиля
-  const updateProfile = async (data) => {
+  // Сохранение профиля
+  const onSubmitProfile = async (data) => {
     try {
       setSaving(true);
       setError(null);
-      
-      await authAPI.updateProfile(data);
-      
-      const response = await authAPI.getProfile();
-      const newData = response.data;
-      
-      setProfileData(newData);
-      updateUser(newData);
-      
+      const response = await authAPI.updateProfile(data);
+      setProfileData(response.data);
+      updateUser(response.data);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-      
     } catch (err) {
-      console.error('Failed to update profile:', err);
-      setError(err.message || 'Ошибка сохранения профиля');
+      setError(err.response?.data?.detail || err.message || 'Ошибка сохранения профиля');
     } finally {
       setSaving(false);
     }
   };
 
-  // Обновление автомобиля
-  const updateVehicle = async (data) => {
+  // Сохранение данных автомобиля
+  const onSubmitVehicle = async (data) => {
     try {
       setSavingVehicle(true);
       setError(null);
       
-      const vehicleDataWithPhoto = { ...data };
+      // Получаем все данные формы включая фото
+      const formValues = vehicleForm.getValues();
       
-      if (vehicleData) {
-        if (selectedCarFile) {
-          vehicleDataWithPhoto.vehicle_image = selectedCarFile;
-        }
-        await vehicleAPI.updateVehicle(vehicleData.id, vehicleDataWithPhoto);
-      } else {
-        if (selectedCarFile) {
-          vehicleDataWithPhoto.vehicle_image = selectedCarFile;
-        }
-        await vehicleAPI.createVehicle(vehicleDataWithPhoto);
-      }
+      // Добавляем is_active: true при создании/обновлении
+      const vehicleDataWithActiveFlag = {
+        ...formValues,
+        is_active: true  // 🔧 ИСПРАВЛЕНИЕ: всегда активная машина
+      };
       
-      setSelectedCarFile(null);
+      const response = vehicleData 
+        ? await vehicleAPI.updateVehicle(vehicleData.id, vehicleDataWithActiveFlag)
+        : await vehicleAPI.createVehicle(vehicleDataWithActiveFlag);
+        
+      setVehicleData(response.data);
+      
+      // Перезагружаем профиль для получения актуальных данных
       await loadProfile();
       
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-      
     } catch (err) {
-      console.error('Failed to update vehicle:', err);
-      setError(err.message || 'Ошибка сохранения данных автомобиля');
+      setError(err.response?.data?.detail || err.message || 'Ошибка сохранения автомобиля');
     } finally {
       setSavingVehicle(false);
     }
   };
 
-  // Загрузка аватара
-  const uploadAvatar = async (file) => {
+  // Загрузка фото профиля  
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     try {
-      setUploadingAvatar(true);
-      setError(null);
+      setUploadingPhoto(true);
       
+      // Проверки файла
       if (file.size > 5 * 1024 * 1024) {
         throw new Error('Файл слишком большой. Максимальный размер: 5MB');
       }
@@ -226,35 +158,96 @@ function DriverProfileContent() {
       if (!file.type.startsWith('image/')) {
         throw new Error('Пожалуйста, выберите изображение');
       }
-      
+
+      // Показываем превью сразу
       const reader = new FileReader();
       reader.onload = (e) => setProfilePhoto(e.target.result);
       reader.readAsDataURL(file);
+
+      const response = await authAPI.updateAvatar(file);
       
-      await authAPI.updateAvatar(file);
+      // Перезагружаем профиль для получения актуального URL аватара
       await loadProfile();
       
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-      
     } catch (err) {
-      console.error('Failed to upload avatar:', err);
-      setError(err.message || 'Ошибка загрузки аватара');
+      setError('Ошибка загрузки фото профиля');
+      // Возвращаем старое фото при ошибке
       if (profileData?.avatar) {
         setProfilePhoto(`http://127.0.0.1:8000${profileData.avatar}`);
       } else {
         setProfilePhoto(null);
       }
     } finally {
-      setUploadingAvatar(false);
+      setUploadingPhoto(false);
     }
   };
 
+  // Загрузка фото автомобиля
+  const handleCarPhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploadingCarPhoto(true);
+      
+      // Проверки файла
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('Файл слишком большой. Максимальный размер: 5MB');
+      }
+      
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Пожалуйста, выберите изображение');
+      }
+
+      // Если машина уже существует - загружаем фото через API
+      if (vehicleData?.id) {
+        const response = await vehicleAPI.updateVehiclePhoto(vehicleData.id, file);
+        console.log('Photo upload response:', response.data);
+        
+        const photoUrl = response.data.vehicle_image;
+        if (photoUrl) {
+          const fullPhotoUrl = photoUrl.startsWith('http') 
+            ? photoUrl 
+            : `http://127.0.0.1:8000${photoUrl}`;
+          setCarPhoto(fullPhotoUrl);
+        }
+        
+        setSaveSuccess(true);
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        // Если машины еще нет - просто показываем превью
+        // Фото будет загружено при создании машины
+        const reader = new FileReader();
+        reader.onload = (e) => setCarPhoto(e.target.result);
+        reader.readAsDataURL(file);
+        
+        // Сохраняем файл для отправки при создании машины
+        vehicleForm.setValue('vehicle_image', file);
+        console.log('Photo selected for new vehicle:', file.name);
+      }
+      
+    } catch (err) {
+      setError('Ошибка загрузки фото автомобиля');
+      console.error('Car photo upload error:', err);
+    } finally {
+      setUploadingCarPhoto(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
   // Удаление автомобиля
-  const deleteVehicle = async () => {
+  const onDeleteVehicle = async () => {
     if (!vehicleData) return;
     
-    const confirmed = window.confirm('Вы уверены, что хотите удалить автомобиль? Это действие нельзя отменить.');
+    const confirmed = window.confirm(
+      `Вы уверены, что хотите удалить автомобиль ${vehicleData.brand} ${vehicleData.model}? Это действие нельзя отменить.`
+    );
+    
     if (!confirmed) return;
 
     try {
@@ -262,15 +255,16 @@ function DriverProfileContent() {
       setError(null);
       
       await vehicleAPI.deleteVehicle(vehicleData.id);
+      console.log('✅ Vehicle deleted successfully');
       
+      // Очищаем данные автомобиля
       setVehicleData(null);
       setCarPhoto(null);
-      
-      resetVehicle({
+      vehicleForm.reset({
         brand: '',
         model: '',
         color: '',
-        seats: '',
+        seats: 4,
         plate_number: '',
       });
       
@@ -279,132 +273,62 @@ function DriverProfileContent() {
       
     } catch (err) {
       console.error('Failed to delete vehicle:', err);
-      setError(err.message || 'Ошибка при удалении автомобиля');
+      setError(err.response?.data?.detail || err.message || 'Ошибка при удалении автомобиля');
     } finally {
       setDeletingVehicle(false);
     }
   };
 
-  // Обработчики
-  const handleAvatarUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      uploadAvatar(file);
-    }
-  };
-
-  const handleCarPhotoUpload = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Файл слишком большой. Максимальный размер: 5MB');
-      return;
-    }
-    
-    if (!file.type.startsWith('image/')) {
-      setError('Пожалуйста, выберите изображение');
-      return;
-    }
-
-    setSelectedCarFile(file);
-    setError(null);
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setCarPhoto(e.target.result);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const onSubmitProfile = (data) => {
-    updateProfile(data);
-  };
-
-  const onSubmitVehicle = (data) => {
-    updateVehicle(data);
-  };
-
-  // Загрузка
+  // Используем переиспользуемые компоненты с зеленой цветовой схемой
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-700">Загружаем профиль...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState colorScheme="green" message="Загружаем профиль водителя..." />;
   }
 
-  // Ошибка загрузки
   if (error && !profileData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Ошибка загрузки профиля
-          </h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <div className="space-x-2">
-            <button 
-              onClick={loadProfile}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              Попробовать снова
-            </button>
-            <button 
-              onClick={() => router.push('/')}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-            >
-              На главную
-            </button>
-          </div>
-        </div>
-      </div>
+      <ErrorState 
+        colorScheme="green"
+        title="Ошибка загрузки профиля"
+        error={error}
+        onRetry={loadProfile}
+        onGoHome={() => router.push('/')}
+      />
     );
   }
 
   return (
     <>
-      {/* Хедер */}
-      <header className="bg-white/90 backdrop-blur-sm shadow-sm border-b border-green-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <button
-              onClick={() => router.push('/')}
-              className="flex items-center space-x-2 px-3 py-2 text-green-700 hover:text-green-800 hover:bg-green-100 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="font-medium">Назад к поездкам</span>
-            </button>
-            
-            <h1 className="text-lg font-semibold text-gray-900">Профиль водителя</h1>
-            <div className="w-32"></div>
-          </div>
-        </div>
-      </header>
+      {/* Используем переиспользуемый хедер с зеленой схемой */}
+      <ProfileHeader 
+        colorScheme="green"
+        title="Профиль водителя"
+        onBack={() => router.push('/')}
+      />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
         {/* Уведомления */}
         {saveSuccess && (
-          <div className="mb-6 p-4 border border-green-200 rounded-lg bg-green-50 text-green-800 flex items-center space-x-2">
-            <Check className="h-4 w-4" />
-            <span>Профиль успешно обновлен!</span>
-          </div>
+          <NotificationBanner 
+            type="success" 
+            message="Профиль успешно обновлен!"
+            onClose={() => setSaveSuccess(false)}
+          />
         )}
 
         {error && (
-          <div className="mb-6 p-4 border border-red-200 rounded-lg bg-red-50 text-red-800">
-            <p>{error}</p>
-          </div>
+          <NotificationBanner 
+            type="error" 
+            message={error}
+            onClose={() => setError(null)}
+          />
         )}
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Основная информация */}
           <div className="lg:col-span-2 space-y-8">
             
-            {/* Форма профиля */}
+            {/* Форма профиля водителя */}
             <div className="bg-white rounded-xl border border-green-200 shadow-lg overflow-hidden">
               <div className="px-6 py-4 bg-gradient-to-r from-green-400 to-emerald-500 text-white">
                 <h2 className="text-xl font-semibold">Личная информация</h2>
@@ -417,33 +341,29 @@ function DriverProfileContent() {
                   <div className="relative">
                     <div className="h-20 w-20 rounded-full overflow-hidden bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg">
                       {profilePhoto ? (
-                        <img 
-                          src={profilePhoto} 
-                          alt="Аватар профиля" 
-                          className="object-cover w-full h-full"
-                          onError={() => setProfilePhoto(null)}
-                        />
+                        <img src={profilePhoto} alt="Профиль" className="w-full h-full object-cover" />
                       ) : (
-                        <User className="h-10 w-10 text-white" />
+                        <span className="text-white text-2xl font-bold">
+                          {profileData?.first_name?.[0] || profileData?.username?.[0] || 'В'}
+                        </span>
                       )}
                     </div>
                     <button
-                      type="button"
-                      onClick={() => avatarInputRef.current?.click()}
-                      disabled={uploadingAvatar}
-                      className="absolute -bottom-1 -right-1 h-6 w-6 bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors disabled:opacity-50"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingPhoto}
+                      className="absolute -bottom-1 -right-1 h-7 w-7 bg-green-600 hover:bg-green-700 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
                     >
-                      {uploadingAvatar ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
+                      {uploadingPhoto ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Camera className="h-3 w-3" />
+                        <Camera className="h-4 w-4" />
                       )}
                     </button>
                     <input
-                      ref={avatarInputRef}
+                      ref={fileInputRef}
                       type="file"
                       accept="image/*"
-                      onChange={handleAvatarUpload}
+                      onChange={handlePhotoUpload}
                       className="hidden"
                     />
                   </div>
@@ -461,105 +381,81 @@ function DriverProfileContent() {
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
+                {/* Упрощенная форма профиля */}
+                <form onSubmit={profileForm.handleSubmit(onSubmitProfile)} className="space-y-4">
+                  {/* Имя */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Имя *</label>
                     <input
                       placeholder="Введите ваше имя"
-                      className={`
-                        block w-full px-3 py-2 border rounded-lg shadow-sm
-                        transition-all duration-200 placeholder:text-gray-400
-                        focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500
-                        ${profileErrors.first_name ? 'border-red-300' : 'border-gray-300 hover:border-green-300'}
-                      `}
-                      {...registerProfile('first_name')}
+                      className={`block w-full px-3 py-2 border rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 ${profileForm.formState.errors.first_name ? 'border-red-300' : 'border-gray-300 hover:border-green-300'}`}
+                      {...profileForm.register('first_name')}
                     />
-                    {profileErrors.first_name && (
-                      <p className="text-sm text-red-600">{profileErrors.first_name.message}</p>
+                    {profileForm.formState.errors.first_name && (
+                      <p className="text-sm text-red-600">{profileForm.formState.errors.first_name.message}</p>
                     )}
                   </div>
 
+                  {/* Фамилия */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Фамилия *</label>
                     <input
                       placeholder="Введите вашу фамилию"
-                      className={`
-                        block w-full px-3 py-2 border rounded-lg shadow-sm
-                        transition-all duration-200 placeholder:text-gray-400
-                        focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500
-                        ${profileErrors.last_name ? 'border-red-300' : 'border-gray-300 hover:border-green-300'}
-                      `}
-                      {...registerProfile('last_name')}
+                      className={`block w-full px-3 py-2 border rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 ${profileForm.formState.errors.last_name ? 'border-red-300' : 'border-gray-300 hover:border-green-300'}`}
+                      {...profileForm.register('last_name')}
                     />
-                    {profileErrors.last_name && (
-                      <p className="text-sm text-red-600">{profileErrors.last_name.message}</p>
+                    {profileForm.formState.errors.last_name && (
+                      <p className="text-sm text-red-600">{profileForm.formState.errors.last_name.message}</p>
                     )}
                   </div>
 
+                  {/* Телефон */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Телефон</label>
                     <input
                       type="tel"
                       placeholder="+7XXXXXXXXXX"
-                      className={`
-                        block w-full px-3 py-2 border rounded-lg shadow-sm
-                        transition-all duration-200 placeholder:text-gray-400
-                        focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500
-                        ${profileErrors.phone ? 'border-red-300' : 'border-gray-300 hover:border-green-300'}
-                      `}
-                      {...registerProfile('phone')}
+                      className={`block w-full px-3 py-2 border rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 ${profileForm.formState.errors.phone ? 'border-red-300' : 'border-gray-300 hover:border-green-300'}`}
+                      {...profileForm.register('phone')}
                     />
-                    {profileErrors.phone && (
-                      <p className="text-sm text-red-600">{profileErrors.phone.message}</p>
+                    {profileForm.formState.errors.phone && (
+                      <p className="text-sm text-red-600">{profileForm.formState.errors.phone.message}</p>
                     )}
                   </div>
 
+                  {/* Email */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Email</label>
                     <input
                       type="email"
                       placeholder="example@mail.com"
-                      className={`
-                        block w-full px-3 py-2 border rounded-lg shadow-sm
-                        transition-all duration-200 placeholder:text-gray-400
-                        focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500
-                        ${profileErrors.email ? 'border-red-300' : 'border-gray-300 hover:border-green-300'}
-                      `}
-                      {...registerProfile('email')}
+                      className={`block w-full px-3 py-2 border rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 ${profileForm.formState.errors.email ? 'border-red-300' : 'border-gray-300 hover:border-green-300'}`}
+                      {...profileForm.register('email')}
                     />
-                    {profileErrors.email && (
-                      <p className="text-sm text-red-600">{profileErrors.email.message}</p>
+                    {profileForm.formState.errors.email && (
+                      <p className="text-sm text-red-600">{profileForm.formState.errors.email.message}</p>
                     )}
                   </div>
-                </div>
 
-                <button
-                  type="button"
-                  onClick={() => onSubmitProfile(watchProfile())}
-                  disabled={!profileIsDirty || saving}
-                  className={`
-                    mt-6 w-full h-10 px-4 py-2 rounded-lg text-sm font-medium
-                    transition-all duration-200 flex items-center justify-center
-                    ${profileIsDirty 
-                      ? 'bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white shadow-lg' 
-                      : 'bg-green-100 text-green-600 cursor-not-allowed'
-                    }
-                    disabled:opacity-50
-                    focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2
-                  `}
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Сохраняем...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      {profileIsDirty ? 'Сохранить профиль' : 'Нет изменений'}
-                    </>
-                  )}
-                </button>
+                  {/* Кнопка сохранения профиля */}
+                  <button
+                    type="submit"
+                    disabled={!profileForm.formState.isDirty || saving}
+                    className={`w-full h-10 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${profileForm.formState.isDirty ? 'bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white shadow-lg' : 'bg-green-100 text-green-600 cursor-not-allowed'} disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2`}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Сохраняем...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        {profileForm.formState.isDirty ? 'Сохранить профиль' : 'Нет изменений'}
+                      </>
+                    )}
+                  </button>
+                </form>
               </div>
             </div>
 
@@ -574,34 +470,29 @@ function DriverProfileContent() {
               </div>
               
               <div className="p-6">
+                {/* Фото автомобиля */}
                 <div className="flex items-center space-x-6 mb-6">
                   <div className="relative">
                     <div className="h-24 w-24 rounded-lg overflow-hidden bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center shadow-lg">
                       {carPhoto ? (
-                        <img 
-                          src={carPhoto} 
-                          alt="Фото автомобиля" 
-                          className="object-cover w-full h-full"
-                          onError={() => setCarPhoto(null)}
-                        />
+                        <img src={carPhoto} alt="Автомобиль" className="w-full h-full object-cover" />
                       ) : (
-                        <Car className="h-12 w-12 text-white" />
+                        <Car className="w-8 h-8 text-white" />
                       )}
                     </div>
                     <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingPhoto}
-                      className="absolute -bottom-2 -right-2 h-8 w-8 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors disabled:opacity-50"
+                      onClick={() => carPhotoInputRef.current?.click()}
+                      disabled={uploadingCarPhoto}
+                      className="absolute -bottom-1 -right-1 h-7 w-7 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg transition-colors disabled:opacity-50"
                     >
-                      {uploadingPhoto ? (
+                      {uploadingCarPhoto ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
                         <Camera className="h-4 w-4" />
                       )}
                     </button>
                     <input
-                      ref={fileInputRef}
+                      ref={carPhotoInputRef}
                       type="file"
                       accept="image/*"
                       onChange={handleCarPhotoUpload}
@@ -610,202 +501,174 @@ function DriverProfileContent() {
                   </div>
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">
-                      {vehicleData ? `${vehicleData.brand || ''} ${vehicleData.model || ''}`.trim() || 'Автомобиль не указан' : 'Автомобиль не добавлен'}
+                      {vehicleData?.brand && vehicleData?.model 
+                        ? `${vehicleData.brand} ${vehicleData.model}`
+                        : 'Автомобиль не добавлен'
+                      }
                     </h3>
                     <p className="text-sm text-gray-600">
                       {vehicleData?.plate_number || 'Номер не указан'}
                     </p>
-                    {selectedCarFile && (
-                      <p className="text-sm text-green-600 mt-1">
-                        Фото выбрано: {selectedCarFile.name}
-                      </p>
-                    )}
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
+                {/* Упрощенная форма автомобиля */}
+                <form onSubmit={vehicleForm.handleSubmit(onSubmitVehicle)} className="space-y-4">
+                  {/* Бренд */}
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Марка *</label>
+                    <label className="block text-sm font-medium text-gray-700">Марка автомобиля *</label>
                     <input
-                      placeholder="Toyota, Hyundai, ..."
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      {...registerVehicle('brand')}
+                      placeholder="Toyota"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300"
+                      {...vehicleForm.register('brand', { required: 'Укажите марку автомобиля' })}
                     />
+                    {vehicleForm.formState.errors.brand && (
+                      <p className="text-sm text-red-600">{vehicleForm.formState.errors.brand.message}</p>
+                    )}
                   </div>
 
+                  {/* Модель */}
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Модель *</label>
+                    <label className="block text-sm font-medium text-gray-700">Модель автомобиля *</label>
                     <input
-                      placeholder="Camry, Solaris, ..."
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      {...registerVehicle('model')}
+                      placeholder="Camry"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300"
+                      {...vehicleForm.register('model', { required: 'Укажите модель автомобиля' })}
                     />
+                    {vehicleForm.formState.errors.model && (
+                      <p className="text-sm text-red-600">{vehicleForm.formState.errors.model.message}</p>
+                    )}
                   </div>
 
+                  {/* Цвет */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Цвет</label>
                     <input
-                      placeholder="Белый, Черный, ..."
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      {...registerVehicle('color')}
+                      placeholder="Белый"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300"
+                      {...vehicleForm.register('color')}
                     />
                   </div>
 
+                  {/* Номер */}
                   <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Количество мест</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="8"
-                      placeholder="4"
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      {...registerVehicle('seats')}
-                    />
-                  </div>
-
-                  <div className="md:col-span-2 space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Государственный номер *</label>
                     <input
-                      placeholder="А123БВ777"
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      {...registerVehicle('plate_number')}
+                      placeholder="А123БВ24"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300"
+                      {...vehicleForm.register('plate_number', { required: 'Укажите номер автомобиля' })}
                     />
+                    {vehicleForm.formState.errors.plate_number && (
+                      <p className="text-sm text-red-600">{vehicleForm.formState.errors.plate_number.message}</p>
+                    )}
                   </div>
-                </div>
 
-                <div className="flex gap-3 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => onSubmitVehicle(watchVehicle())}
-                    disabled={!vehicleIsDirty || savingVehicle}
-                    className={`
-                      flex-1 h-10 px-4 py-2 rounded-lg text-sm font-medium
-                      transition-all duration-200 flex items-center justify-center
-                      ${vehicleIsDirty 
-                        ? 'bg-gradient-to-r from-blue-400 to-cyan-500 hover:from-blue-500 hover:to-cyan-600 text-white shadow-lg' 
-                        : 'bg-blue-100 text-blue-600 cursor-not-allowed'
-                      }
-                      disabled:opacity-50
-                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-                    `}
-                  >
-                    {savingVehicle ? (
+                  {/* Количество мест */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Количество пассажирских мест</label>
+                    <select
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300"
+                      {...vehicleForm.register('seats')}
+                    >
+                      <option value={1}>1 место</option>
+                      <option value={2}>2 места</option>
+                      <option value={3}>3 места</option>
+                      <option value={4}>4 места</option>
+                      <option value={5}>5 мест</option>
+                      <option value={6}>6 мест</option>
+                      <option value={7}>7 мест</option>
+                      <option value={8}>8 мест</option>
+                    </select>
+                  </div>
+
+                  {/* Кнопка сохранения автомобиля */}
+              {vehicleData ? (
+                      // Если автомобиль существует - показываем кнопки "Сохранить изменения" и "Удалить"
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Сохраняем...
+                        <button
+                          type="button"
+                          onClick={onDeleteVehicle}
+                          disabled={deletingVehicle || savingVehicle}
+                          className="h-10 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors flex items-center justify-center space-x-2"
+                        >
+                          {deletingVehicle ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Удаляем...</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>🗑️</span>
+                              <span>Удалить</span>
+                            </>
+                          )}
+                        </button>
                       </>
                     ) : (
-                      <>
-                        <Save className="w-4 h-4 mr-2" />
-                        {vehicleIsDirty ? (vehicleData ? 'Обновить автомобиль' : 'Добавить автомобиль') : 'Нет изменений'}
-                      </>
+                      // Если автомобиля нет - показываем только кнопку "Добавить автомобиль"
+                      <button
+                        type="submit"
+                        disabled={savingVehicle || !vehicleForm.formState.isValid}
+                        className={`w-full h-10 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${
+                          vehicleForm.formState.isValid 
+                            ? 'bg-gradient-to-r from-blue-400 to-cyan-500 hover:from-blue-500 hover:to-cyan-600 text-white shadow-lg' 
+                            : 'bg-blue-100 text-blue-600 cursor-not-allowed'
+                        } disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                      >
+                        {savingVehicle ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Добавляем автомобиль...
+                          </>
+                        ) : (
+                          <>
+                            <Car className="w-4 h-4 mr-2" />
+                            Добавить автомобиль
+                          </>
+                        )}
+                      </button> 
                     )}
-                  </button>
-
-                  {vehicleData && (
-                    <button
-                      type="button"
-                      onClick={deleteVehicle}
-                      disabled={deletingVehicle || savingVehicle}
-                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors flex items-center space-x-2"
-                    >
-                      {deletingVehicle ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <span>🗑️</span>
-                      )}
-                      <span>{deletingVehicle ? 'Удаляем...' : 'Удалить'}</span>
-                    </button>
-                  )}
-                </div>
+                </form>
               </div>
             </div>
           </div>
-          {/* Боковая панель */}
+
+          {/* Боковая панель (упрощена) */}
           <div className="space-y-6">
-            {/* Статус */}
-            <div className="bg-white rounded-xl border border-green-200 shadow-lg overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold flex items-center">
-                  <Clock className="w-5 h-5 mr-2 text-green-500" />
-                  Статус
-                </h3>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Статус</span>
-                    <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                      На линии
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Свободных мест</span>
-                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                      {vehicleData?.seats || '4'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Рейтинг</span>
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-                        5.0
-                      </span>
-                    </div>
-                  </div>
+            {/* Статистика водителя */}
+            <div className="bg-white rounded-xl border border-green-200 shadow-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <Star className="w-5 h-5 mr-2 text-yellow-500" />
+                Статистика
+              </h3>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Поездок:</span>
+                  <span className="font-medium">{profileData?.trips_count || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Рейтинг:</span>
+                  <span className="font-medium flex items-center">
+                    {profileData?.rating || 'Новичок'}
+                    {profileData?.rating && <Star className="w-4 h-4 ml-1 text-yellow-500" />}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Статус:</span>
+                  <span className="font-medium text-green-600">Активен</span>
                 </div>
               </div>
             </div>
 
-            {/* Контакты */}
-            <div className="bg-white rounded-xl border border-green-200 shadow-lg overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold flex items-center">
-                  <MessageCircle className="w-5 h-5 mr-2 text-emerald-600" />
-                  Контакты
-                </h3>
-              </div>
-              <div className="p-6">
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <Phone className="w-4 h-4 text-emerald-600" />
-                    <span className="text-sm text-gray-800">{profileData?.phone || 'Не указан'}</span>
-                  </div>
-                  {profileData?.email && (
-                    <div className="flex items-center space-x-3">
-                      <Mail className="w-4 h-4 text-emerald-600" />
-                      <span className="text-sm text-gray-800">{profileData.email}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Быстрые действия */}
-            <div className="bg-white rounded-xl border border-green-200 shadow-lg overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold">Быстрые действия</h3>
-              </div>
-              <div className="p-6 space-y-3">
-                <button 
-                  onClick={() => router.push('/driver/trips')}
-                  className="w-full flex items-center justify-center px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  Мои поездки
-                </button>
-                <button 
-                  onClick={() => router.push('/driver/earnings')}
-                  className="w-full flex items-center justify-center px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
-                >
-                  <DollarSign className="w-4 h-4 mr-2" />
-                  История доходов
-                </button>
-                <button className="w-full flex items-center justify-center px-4 py-2 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors">
-                  <Star className="w-4 h-4 mr-2" />
-                  Отзывы пассажиров
-                </button>
+            {/* Маршруты */}
+            <div className="bg-white rounded-xl border border-green-200 shadow-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <MapPin className="w-5 h-5 mr-2 text-green-600" />
+                Мои маршруты
+              </h3>
+              <div className="text-center py-4">
+                <p className="text-gray-600 text-sm">Маршруты назначает администратор</p>
+                <p className="text-gray-500 text-xs mt-1">Обратитесь к админу для добавления маршрутов</p>
               </div>
             </div>
           </div>

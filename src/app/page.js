@@ -168,24 +168,22 @@ export default function HomePage() {
               {isAuthenticated ? (
                 <>
                   <span className="text-sm text-gray-600">
-                    Привет, {user?.name || 'Пользователь'}!
+                    Привет, {user?.first_name || user?.username || 'Пользователь'}!
                   </span>
                   <Button
                     variant="ghost"
-                    size="sm"
                     onClick={() => router.push('/profile')}
                     className="flex items-center space-x-1"
                   >
-                    <User className="h-4 w-4" />
+                    <User className="w-4 h-4" />
                     <span>Профиль</span>
                   </Button>
                   <Button
                     variant="ghost"
-                    size="sm"
                     onClick={handleLogout}
                     className="flex items-center space-x-1"
                   >
-                    <LogOut className="h-4 w-4" />
+                    <LogOut className="w-4 h-4" />
                     <span>Выйти</span>
                   </Button>
                 </>
@@ -193,27 +191,27 @@ export default function HomePage() {
                 <>
                   <Button
                     variant="ghost"
-                    size="sm"
                     onClick={() => router.push('/login')}
+                    className="flex items-center space-x-1"
                   >
-                    Войти
+                    <User className="w-4 h-4" />
+                    <span>Войти</span>
                   </Button>
                   <Button
-                    size="sm"
                     onClick={() => router.push('/register')}
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                    className="flex items-center space-x-1"
                   >
-                    Регистрация
+                    <UserPlus className="w-4 h-4" />
+                    <span>Регистрация</span>
                   </Button>
                 </>
               )}
             </div>
 
-            {/* Мобильное меню */}
+            {/* Мобильное меню кнопка */}
             <div className="md:hidden">
               <Button
                 variant="ghost"
-                size="sm"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
                 {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -279,24 +277,28 @@ export default function HomePage() {
               <select
                 value={selectedRoute}
                 onChange={(e) => setSelectedRoute(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
               >
                 <option value="">Все маршруты</option>
-                <option value="1">Красноярск → Абакан</option>
-                <option value="2">Абакан → Красноярск</option>
+                {routes.map((route) => (
+                  <option key={route.id} value={route.id}>
+                    {route.name}
+                  </option>
+                ))}
               </select>
             </div>
 
             {/* Выбор даты */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Дата
+                Дата отправления
               </label>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                min={new Date().toISOString().split('T')[0]}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
               />
             </div>
 
@@ -308,7 +310,7 @@ export default function HomePage() {
               <select
                 value={passengers}
                 onChange={(e) => setPassengers(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
               >
                 {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
                   <option key={num} value={num}>{num}</option>
@@ -320,7 +322,7 @@ export default function HomePage() {
             <div className="flex items-end">
               <Button
                 onClick={handleSearch}
-                className="w-full bg-yellow-600 hover:bg-yellow-700 text-white flex items-center justify-center"
+                className="w-full flex items-center justify-center"
               >
                 <Search className="w-4 h-4 mr-2" />
                 Найти
@@ -330,11 +332,7 @@ export default function HomePage() {
         </div>
 
         {/* Результаты поиска */}
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">
-            Доступные поездки
-          </h2>
-
+        <div className="space-y-6">
           {tripsLoading && (
             <div className="flex justify-center py-8">
               <LoadingSpinner size="lg" />
@@ -364,6 +362,17 @@ export default function HomePage() {
             {availableTrips.map((trip) => (
               <Card key={trip.id} className="border-yellow-200 hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
+                  {/* ИСПРАВЛЕНО: Информация о маршруте */}
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                      <MapPin className="w-5 h-5 mr-2 text-yellow-600" />
+                      {trip.route?.from_city || 'Неизвестно'} → {trip.route?.to_city || 'Неизвестно'}
+                    </h3>
+                    {trip.route?.distance_km && (
+                      <p className="text-sm text-gray-600 ml-7">Расстояние: {trip.route.distance_km} км</p>
+                    )}
+                  </div>
+
                   <div className="flex flex-col md:flex-row md:items-center justify-between">
                     {/* Информация о поездке */}
                     <div className="flex-1">
@@ -413,11 +422,20 @@ export default function HomePage() {
                           </div>
                         </div>
 
-                        {/* Автомобиль */}
+                        {/* ИСПРАВЛЕНО: Автомобиль */}
                         <div>
                           <p className="text-sm text-gray-600">Автомобиль</p>
-                          <p className="font-medium">Авто #{trip.car}</p>
-                          <p className="text-xs text-gray-500">Номер не указан</p>
+                          <p className="font-medium">
+                            {trip.car?.brand || 'Неизвестно'} {trip.car?.model || ''}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {trip.car?.plate_number || 'Номер не указан'}
+                          </p>
+                          {trip.car?.color && (
+                            <p className="text-xs text-gray-500">
+                              Цвет: {trip.car.color}
+                            </p>
+                          )}
                         </div>
 
                         {/* Места и цена */}

@@ -1,27 +1,10 @@
 import { z } from 'zod';
 
-// Схема для входа (обновлена под реальный API)
+// Схема для входа
 export const loginSchema = z.object({
   username: z
     .string()
     .min(1, 'Введите имя пользователя'),
-  
-  password: z
-    .string()
-    .min(1, 'Введите пароль'),
-});
-
-// Оставляем старые схемы для совместимости (пока не обновим все компоненты)
-export const loginPhoneSchema = z.object({
-  phone: z
-    .string()
-    .regex(/^\+7\d{10}$/, 'Введите корректный номер телефона в формате +7XXXXXXXXXX'),
-});
-
-export const loginEmailSchema = z.object({
-  email: z
-    .string()
-    .email('Введите корректный email'),
   
   password: z
     .string()
@@ -65,7 +48,7 @@ export const registerSchema = z.object({
     .or(z.literal('')),
 });
 
-// Схема для подтверждения SMS кода (если нужна)
+// Схема для подтверждения SMS кода
 export const verifySMSSchema = z.object({
   code: z
     .string()
@@ -73,9 +56,9 @@ export const verifySMSSchema = z.object({
     .regex(/^\d+$/, 'Код должен содержать только цифры'),
 });
 
-// Схема для обновления профиля
+// Упрощенная схема для обновления профиля
 export const updateProfileSchema = z.object({
-first_name: z
+  first_name: z
     .string()
     .min(2, 'Имя должно содержать минимум 2 символа')
     .max(150, 'Имя не должно превышать 150 символов'),
@@ -95,19 +78,22 @@ first_name: z
     .string()
     .optional()
     .or(z.literal('')),
-
-      avatar: z
+  
+  telegram: z
     .string()
     .optional()
     .or(z.literal('')),
-
-      name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
-  email: z.string().email('Введите корректный email').optional().or(z.literal('')),
-  telegram: z.string().optional().or(z.literal('')),
   
   // Поля для водителя
-  car_model: z.string().optional().or(z.literal('')),
-  car_number: z.string().optional().or(z.literal('')),
+  car_model: z
+    .string()
+    .optional()
+    .or(z.literal('')),
+  
+  car_number: z
+    .string()
+    .optional()
+    .or(z.literal('')),
 });
 
 // Схема для бронирования поездки
@@ -118,4 +104,3 @@ export const bookRideSchema = z.object({
   passengers: z.number().min(1, 'Укажите количество пассажиров').max(8, 'Максимум 8 пассажиров'),
   comment: z.string().optional(),
 });
-

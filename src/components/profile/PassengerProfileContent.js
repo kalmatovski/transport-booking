@@ -1,137 +1,85 @@
+// src/components/profile/PassengerProfileContent.js (УПРОЩЕННАЯ ВЕРСИЯ)
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { 
-  ArrowLeft, 
-  Camera, 
-  User, 
-  Phone, 
-  Mail, 
-  MessageCircle, 
-  Star,
-  Check,
-  Save,
-  Loader2,
-  MapPin,
-  Calendar
-} from 'lucide-react';
+import { Camera, Save, Loader2, Calendar } from 'lucide-react';
 
 import { updateProfileSchema } from '../../lib/validationSchemas';
-import { authAPI, ridesAPI } from '../../lib/api';
+import { authAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
+
+// Импортируем новые переиспользуемые компоненты
+import { LoadingState, ErrorState, ProfileHeader, NotificationBanner } from './ProfileStates';
 
 function PassengerProfileContent() {
   const router = useRouter();
   const { user, updateUser } = useAuthStore();
+  
+  // Состояния (упрощено)
   const [profileData, setProfileData] = useState(null);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState(null);
+  
   const fileInputRef = useRef(null);
 
-  // Форма
+  // Форма профиля
   const {
     register,
     handleSubmit,
     formState: { errors, isDirty },
-    watch,
-    reset
+    reset,
+    watch
   } = useForm({
     resolver: zodResolver(updateProfileSchema),
-    defaultValues: {
-      first_name: '',
-      last_name: '',
-      email: '',
-      phone: '',
-    },
   });
 
-  // Загружаем профиль при монтировании
-  useEffect(() => {
-    loadProfile();
-  }, []);
-
-  // Простая функция загрузки профиля
+  // Загрузка профиля
   const loadProfile = async () => {
     try {
       setLoading(true);
       setError(null);
-      
       const response = await authAPI.getProfile();
-      const data = response.data;
-      
-      setProfileData(data);
-      updateUser(data);
-      
-      // Устанавливаем аватарку
-      if (data.avatar) {
-        setProfilePhoto(`http://127.0.0.1:8000${data.avatar}`);
-      } else {
-        setProfilePhoto(null);
-      }
-      
-      // Заполняем форму
-      reset({
-        first_name: data.first_name || '',
-        last_name: data.last_name || '',
-        email: data.email || '',
-        phone: data.phone || '',
-      });
-      
+      setProfileData(response.data);
+      setProfilePhoto(response.data.avatar ? `http://127.0.0.1:8000${response.data.avatar}` : null);
+      reset(response.data);
     } catch (err) {
-      console.error('Failed to load profile:', err);
-      setError(err.message || 'Ошибка загрузки профиля');
+      setError(err.response?.data?.detail || err.message || 'Ошибка загрузки профиля');
     } finally {
       setLoading(false);
     }
   };
 
-  // Обновление текстовых данных
-  const updateProfile = async (data) => {
+  // Сохранение профиля
+  const onSubmit = async (data) => {
     try {
       setSaving(true);
       setError(null);
-      
-      // PATCH запрос
-      await authAPI.updateProfile(data);
-      
-      // GET запрос - получаем свежие данные
-      const response = await authAPI.getProfile();
-      const newData = response.data;
-      
-      // Обновляем state
-      setProfileData(newData);
-      updateUser(newData);
-      
-      // Обновляем аватарку
-      if (newData.avatar) {
-        setProfilePhoto(`http://127.0.0.1:8000${newData.avatar}`);
-      } else {
-        setProfilePhoto(null);
-      }
-      
+      const response = await authAPI.updateProfile(data);
+      setProfileData(response.data);
+      updateUser(response.data);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-      
     } catch (err) {
-      console.error('Failed to update profile:', err);
-      setError(err.message || 'Ошибка сохранения профиля');
+      setError(err.response?.data?.detail || err.message || 'Ошибка сохранения');
     } finally {
       setSaving(false);
     }
   };
 
-  // Загрузка аватарки
-  const uploadAvatar = async (file) => {
+  // Загрузка фото
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     try {
-      setUploadingAvatar(true);
-      setError(null);
+      setUploadingPhoto(true);
       
       // Проверки файла
       if (file.size > 5 * 1024 * 1024) {
@@ -141,34 +89,21 @@ function PassengerProfileContent() {
       if (!file.type.startsWith('image/')) {
         throw new Error('Пожалуйста, выберите изображение');
       }
-      
+
       // Показываем превью сразу
       const reader = new FileReader();
       reader.onload = (e) => setProfilePhoto(e.target.result);
       reader.readAsDataURL(file);
+
+      const response = await authAPI.updateAvatar(file);
       
-      // PATCH запрос с файлом
-      await authAPI.updateAvatar(file);
-      
-      // GET запрос - получаем свежие данные
-      const response = await authAPI.getProfile();
-      const newData = response.data;
-      
-      // Обновляем state
-      setProfileData(newData);
-      updateUser(newData);
-      
-      // Обновляем аватарку из сервера
-      if (newData.avatar) {
-        setProfilePhoto(`http://127.0.0.1:8000${newData.avatar}`);
-      }
+      // Перезагружаем профиль для получения актуального URL аватара
+      await loadProfile();
       
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
-      
     } catch (err) {
-      console.error('Failed to upload avatar:', err);
-      setError(err.message || 'Ошибка загрузки фото');
+      setError('Ошибка загрузки фото профиля');
       // Возвращаем старое фото при ошибке
       if (profileData?.avatar) {
         setProfilePhoto(`http://127.0.0.1:8000${profileData.avatar}`);
@@ -176,169 +111,124 @@ function PassengerProfileContent() {
         setProfilePhoto(null);
       }
     } finally {
-      setUploadingAvatar(false);
+      setUploadingPhoto(false);
     }
   };
 
-  // Обработка загрузки фото
-  const handlePhotoUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      uploadAvatar(file);
-    }
-  };
+  useEffect(() => {
+    loadProfile();
+  }, []);
 
-  // Отправка формы
-  const onSubmit = (data) => {
-    updateProfile(data);
-  };
-
-  // Загрузка
+  // Используем новые переиспользуемые компоненты
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-amber-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600 mx-auto mb-4"></div>
-          <p className="text-gray-700">Загружаем профиль...</p>
-        </div>
-      </div>
-    );
+    return <LoadingState colorScheme="yellow" message="Загружаем профиль..." />;
   }
 
-  // Ошибка загрузки
   if (error && !profileData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-amber-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Ошибка загрузки профиля
-          </h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <div className="space-x-2">
-            <button 
-              onClick={loadProfile}
-              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
-            >
-              Попробовать снова
-            </button>
-            <button 
-              onClick={() => router.push('/')}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-            >
-              На главную
-            </button>
-          </div>
-        </div>
-      </div>
+      <ErrorState 
+        colorScheme="yellow"
+        title="Ошибка загрузки профиля"
+        error={error}
+        onRetry={loadProfile}
+        onGoHome={() => router.push('/')}
+      />
     );
   }
 
   return (
     <>
-      {/* Хедер */}
-      <header className="bg-white/90 backdrop-blur-sm shadow-sm border-b border-yellow-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <button
-              onClick={() => router.push('/')}
-              className="flex items-center space-x-2 px-3 py-2 text-yellow-700 hover:text-yellow-800 hover:bg-yellow-100 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="font-medium">Назад к поездкам</span>
-            </button>
-            
-            <h1 className="text-lg font-semibold text-gray-900">Профиль пассажира</h1>
-            <div className="w-32"></div>
-          </div>
-        </div>
-      </header>
+      {/* Используем переиспользуемый хедер */}
+      <ProfileHeader 
+        colorScheme="yellow"
+        title="Профиль пассажира"
+        onBack={() => router.push('/')}
+      />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
         {/* Уведомления */}
         {saveSuccess && (
-          <div className="mb-6 p-4 border border-green-200 rounded-lg bg-green-50 text-green-800 flex items-center space-x-2">
-            <Check className="h-4 w-4" />
-            <span>Профиль успешно обновлен!</span>
-          </div>
+          <NotificationBanner 
+            type="success" 
+            message="Профиль успешно обновлен!"
+            onClose={() => setSaveSuccess(false)}
+          />
         )}
 
         {error && (
-          <div className="mb-6 p-4 border border-red-200 rounded-lg bg-red-50 text-red-800">
-            <p>{error}</p>
-          </div>
+          <NotificationBanner 
+            type="error" 
+            message={error}
+            onClose={() => setError(null)}
+          />
         )}
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Основная информация */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-8">
+            
+            {/* Форма профиля */}
             <div className="bg-white rounded-xl border border-yellow-200 shadow-lg overflow-hidden">
               <div className="px-6 py-4 bg-gradient-to-r from-yellow-400 to-amber-500 text-white">
                 <h2 className="text-xl font-semibold">Личная информация</h2>
-                <p className="text-white/80 text-sm">Управляйте своими данными как пассажир</p>
+                <p className="text-white/80 text-sm">Ваши персональные данные</p>
               </div>
               
               <div className="p-6">
-                <form className="space-y-6">
-                  {/* Фото профиля */}
-                  <div className="flex items-center space-x-6">
-                    <div className="relative">
-                      <div className="h-24 w-24 rounded-full overflow-hidden bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center shadow-lg">
-                        {profilePhoto ? (
-                          <img 
-                            src={profilePhoto} 
-                            alt="Фото профиля" 
-                            className="object-cover w-full h-full"
-                            onError={() => setProfilePhoto(null)}
-                          />
-                        ) : (
-                          <User className="h-12 w-12 text-white" />
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploadingAvatar}
-                        className="absolute -bottom-2 -right-2 h-8 w-8 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors disabled:opacity-50"
-                      >
-                        {uploadingAvatar ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Camera className="h-4 w-4" />
-                        )}
-                      </button>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        onChange={handlePhotoUpload}
-                        className="hidden"
-                      />
+                {/* Аватар профиля */}
+                <div className="flex items-center space-x-6 mb-6">
+                  <div className="relative">
+                    <div className="h-20 w-20 rounded-full overflow-hidden bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center shadow-lg">
+                      {profilePhoto ? (
+                        <img src={profilePhoto} alt="Профиль" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-white text-2xl font-bold">
+                          {profileData?.first_name?.[0] || profileData?.username?.[0] || 'П'}
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">
-                        {profileData?.first_name && profileData?.last_name 
-                          ? `${profileData.first_name} ${profileData.last_name}`
-                          : profileData?.username || 'Имя не указано'
-                        }
-                      </h3>
-                      <p className="text-sm text-gray-600">{profileData?.phone || 'Телефон не указан'}</p>
-                      <span className="inline-block mt-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
-                        Пассажир
-                      </span>
-                    </div>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingPhoto}
+                      className="absolute -bottom-1 -right-1 h-7 w-7 bg-yellow-600 hover:bg-yellow-700 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
+                    >
+                      {uploadingPhoto ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                    />
                   </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">
+                      {profileData?.first_name && profileData?.last_name 
+                        ? `${profileData.first_name} ${profileData.last_name}`
+                        : profileData?.username || 'Имя не указано'
+                      }
+                    </h3>
+                    <p className="text-sm text-gray-600">{profileData?.phone || 'Телефон не указан'}</p>
+                    <span className="inline-block mt-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                      Пассажир
+                    </span>
+                  </div>
+                </div>
 
-                  {/* Поля формы */}
+                {/* Упрощенная форма */}
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                  {/* Имя */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Имя *</label>
                     <input
                       placeholder="Введите ваше имя"
-                      className={`
-                        block w-full px-3 py-2 border rounded-lg shadow-sm
-                        transition-all duration-200 placeholder:text-gray-400
-                        focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500
-                        ${errors.first_name ? 'border-red-300' : 'border-gray-300 hover:border-yellow-300'}
-                      `}
+                      className={`block w-full px-3 py-2 border rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${errors.first_name ? 'border-red-300' : 'border-gray-300 hover:border-yellow-300'}`}
                       {...register('first_name')}
                     />
                     {errors.first_name && (
@@ -346,16 +236,12 @@ function PassengerProfileContent() {
                     )}
                   </div>
 
+                  {/* Фамилия */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Фамилия *</label>
                     <input
                       placeholder="Введите вашу фамилию"
-                      className={`
-                        block w-full px-3 py-2 border rounded-lg shadow-sm
-                        transition-all duration-200 placeholder:text-gray-400
-                        focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500
-                        ${errors.last_name ? 'border-red-300' : 'border-gray-300 hover:border-yellow-300'}
-                      `}
+                      className={`block w-full px-3 py-2 border rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${errors.last_name ? 'border-red-300' : 'border-gray-300 hover:border-yellow-300'}`}
                       {...register('last_name')}
                     />
                     {errors.last_name && (
@@ -363,17 +249,13 @@ function PassengerProfileContent() {
                     )}
                   </div>
 
+                  {/* Телефон */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Телефон</label>
                     <input
                       type="tel"
                       placeholder="+7XXXXXXXXXX"
-                      className={`
-                        block w-full px-3 py-2 border rounded-lg shadow-sm
-                        transition-all duration-200 placeholder:text-gray-400
-                        focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500
-                        ${errors.phone ? 'border-red-300' : 'border-gray-300 hover:border-yellow-300'}
-                      `}
+                      className={`block w-full px-3 py-2 border rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${errors.phone ? 'border-red-300' : 'border-gray-300 hover:border-yellow-300'}`}
                       {...register('phone')}
                     />
                     {errors.phone && (
@@ -381,17 +263,13 @@ function PassengerProfileContent() {
                     )}
                   </div>
 
+                  {/* Email */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Email</label>
                     <input
                       type="email"
                       placeholder="example@mail.com"
-                      className={`
-                        block w-full px-3 py-2 border rounded-lg shadow-sm
-                        transition-all duration-200 placeholder:text-gray-400
-                        focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500
-                        ${errors.email ? 'border-red-300' : 'border-gray-300 hover:border-yellow-300'}
-                      `}
+                      className={`block w-full px-3 py-2 border rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${errors.email ? 'border-red-300' : 'border-gray-300 hover:border-yellow-300'}`}
                       {...register('email')}
                     />
                     {errors.email && (
@@ -402,19 +280,9 @@ function PassengerProfileContent() {
 
                   {/* Кнопка сохранения */}
                   <button
-                    type="button"
-                    onClick={() => onSubmit(watch())}
+                    type="submit"
                     disabled={!isDirty || saving}
-                    className={`
-                      w-full h-10 px-4 py-2 rounded-lg text-sm font-medium
-                      transition-all duration-200 flex items-center justify-center
-                      ${isDirty 
-                        ? 'bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-white shadow-lg' 
-                        : 'bg-yellow-100 text-yellow-600 cursor-not-allowed'
-                      }
-                      disabled:opacity-50
-                      focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2
-                    `}
+                    className={`w-full h-10 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${isDirty ? 'bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-white shadow-lg' : 'bg-yellow-100 text-yellow-600 cursor-not-allowed'} disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2`}
                   >
                     {saving ? (
                       <>
@@ -432,8 +300,8 @@ function PassengerProfileContent() {
               </div>
             </div>
 
-            {/* История поездок */}
-            <div className="mt-8 bg-white rounded-xl border border-yellow-200 shadow-lg overflow-hidden">
+            {/* История поездок (упрощено) */}
+            <div className="bg-white rounded-xl border border-yellow-200 shadow-lg overflow-hidden">
               <div className="px-6 py-4 bg-gradient-to-r from-yellow-50 to-amber-100 border-b border-yellow-200">
                 <h3 className="text-lg font-semibold text-yellow-900 flex items-center">
                   <Calendar className="w-5 h-5 mr-2" />
@@ -455,57 +323,18 @@ function PassengerProfileContent() {
             </div>
           </div>
 
-          {/* Боковая панель */}
+          {/* Боковая панель (упрощена) */}
           <div className="space-y-6">
-            {/* Статистика */}
-            <div className="bg-white rounded-xl border border-yellow-200 shadow-lg overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold flex items-center">
-                  <Star className="w-5 h-5 mr-2 text-yellow-500" />
-                  Статистика
-                </h3>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Поездок</span>
-                    <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-                      0
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">Рейтинг</span>
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                      <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
-                        5.0
-                      </span>
-                    </div>
-                  </div>
+            <div className="bg-white rounded-xl border border-yellow-200 shadow-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Статистика</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Поездок:</span>
+                  <span className="font-medium">0</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Контакты */}
-            <div className="bg-white rounded-xl border border-yellow-200 shadow-lg overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-semibold flex items-center">
-                  <MessageCircle className="w-5 h-5 mr-2 text-amber-600" />
-                  Контакты
-                </h3>
-              </div>
-              <div className="p-6">
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3">
-                    <Phone className="w-4 h-4 text-amber-600" />
-                    <span className="text-sm text-gray-800">{profileData?.phone || 'Не указан'}</span>
-                  </div>
-                  {profileData?.email && (
-                    <div className="flex items-center space-x-3">
-                      <Mail className="w-4 h-4 text-amber-600" />
-                      <span className="text-sm text-gray-800">{profileData.email}</span>
-                    </div>
-                  )}
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Рейтинг:</span>
+                  <span className="font-medium">Новичок</span>
                 </div>
               </div>
             </div>

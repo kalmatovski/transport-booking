@@ -5,10 +5,11 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Camera, Save, Loader2, Calendar } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Camera, Save, Loader2, Calendar, MapPin, Clock, Users, Car, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 import { updateProfileSchema } from '../../lib/validationSchemas';
-import { authAPI } from '../../lib/api';
+import { authAPI, bookingAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 
 // Импортируем новые переиспользуемые компоненты
@@ -28,6 +29,17 @@ function PassengerProfileContent() {
   const [error, setError] = useState(null);
   
   const fileInputRef = useRef(null);
+
+  // Загружаем брони пассажира
+  const { 
+    data: bookings, 
+    isLoading: bookingsLoading,
+    error: bookingsError 
+  } = useQuery({
+    queryKey: ['my-bookings'],
+    queryFn: () => bookingAPI.getMyBookings(),
+    select: (data) => data.data || [],
+  });
 
   // Форма профиля
   const {
@@ -118,6 +130,63 @@ function PassengerProfileContent() {
   useEffect(() => {
     loadProfile();
   }, []);
+
+  // Функции для форматирования данных броней
+  const formatDateTime = (dateTimeString) => {
+    if (!dateTimeString) return 'Не указано';
+    const date = new Date(dateTimeString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return `Сегодня, ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return `Завтра, ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+    } else {
+      return `${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}, ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending': return 'text-yellow-700 bg-yellow-100';
+      case 'confirmed': return 'text-green-700 bg-green-100';
+      case 'cancelled': return 'text-red-700 bg-red-100';
+      case 'completed': return 'text-blue-700 bg-blue-100';
+      default: return 'text-gray-700 bg-gray-100';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'pending': return 'Ожидает подтверждения';
+      case 'confirmed': return 'Подтверждено';
+      case 'cancelled': return 'Отменено';
+      case 'completed': return 'Завершено';
+      default: return 'Неизвестно';
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'pending': return <AlertCircle className="w-4 h-4" />;
+      case 'confirmed': return <CheckCircle className="w-4 h-4" />;
+      case 'cancelled': return <XCircle className="w-4 h-4" />;
+      case 'completed': return <CheckCircle className="w-4 h-4" />;
+      default: return <AlertCircle className="w-4 h-4" />;
+    }
+  };
+
+  const handleCancelBooking = async (bookingId) => {
+    try {
+      await bookingAPI.cancelBooking(bookingId);
+      // Перезагружаем данные
+      window.location.reload();
+    } catch (error) {
+      console.error('Ошибка отмены брони:', error);
+    }
+  };
 
   // Используем новые переиспользуемые компоненты
   if (loading) {
@@ -300,25 +369,137 @@ function PassengerProfileContent() {
               </div>
             </div>
 
-            {/* История поездок (упрощено) */}
+            {/* Мои брони */}
             <div className="bg-white rounded-xl border border-yellow-200 shadow-lg overflow-hidden">
               <div className="px-6 py-4 bg-gradient-to-r from-yellow-50 to-amber-100 border-b border-yellow-200">
                 <h3 className="text-lg font-semibold text-yellow-900 flex items-center">
                   <Calendar className="w-5 h-5 mr-2" />
-                  История поездок
+                  Мои брони
                 </h3>
               </div>
               <div className="p-6">
-                <div className="text-center py-8">
-                  <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                  <p className="text-gray-600">У вас пока нет поездок</p>
-                  <button 
-                    onClick={() => router.push('/')}
-                    className="mt-4 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
-                  >
-                    Найти поездку
-                  </button>
-                </div>
+                {bookingsLoading ? (
+                  <div className="text-center py-8">
+                    <Loader2 className="w-8 h-8 mx-auto text-yellow-600 animate-spin mb-4" />
+                    <p className="text-gray-600">Загружаем брони...</p>
+                  </div>
+                ) : bookingsError ? (
+                  <div className="text-center py-8">
+                    <XCircle className="w-12 h-12 mx-auto text-red-400 mb-4" />
+                    <p className="text-red-600">Ошибка загрузки броней</p>
+                    <p className="text-gray-500 text-sm mt-1">{bookingsError.message}</p>
+                  </div>
+                ) : !bookings || bookings.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                    <p className="text-gray-600">У вас пока нет броней</p>
+                    <button 
+                      onClick={() => router.push('/')}
+                      className="mt-4 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                    >
+                      Найти поездку
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {bookings.map((booking) => (
+                      <div key={booking.id} className="border border-gray-200 rounded-lg p-4 hover:border-yellow-300 transition-colors">
+                        {/* Основная информация о брони */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
+                                {getStatusIcon(booking.status)}
+                                <span className="ml-1">{getStatusText(booking.status)}</span>
+                              </span>
+                              <span className="text-sm text-gray-500">#{booking.id}</span>
+                            </div>
+
+                            {/* Информация о маршруте */}
+                            {booking.trip_details && (
+                              <div className="space-y-2">
+                                <div className="flex items-center text-gray-700">
+                                  <MapPin className="w-4 h-4 mr-2 text-gray-500" />
+                                  <span className="font-medium">
+                                    {booking.trip_details.route?.from_city || 'Неизвестно'} → {booking.trip_details.route?.to_city || 'Неизвестно'}
+                                  </span>
+                                </div>
+                                
+                                <div className="flex items-center text-gray-600">
+                                  <Clock className="w-4 h-4 mr-2 text-gray-500" />
+                                  <span>{formatDateTime(booking.trip_details.departure_time)}</span>
+                                </div>
+
+                                <div className="flex items-center text-gray-600">
+                                  <Users className="w-4 h-4 mr-2 text-gray-500" />
+                                  <span>{booking.seats_reserved} {booking.seats_reserved === 1 ? 'место' : booking.seats_reserved < 5 ? 'места' : 'мест'}</span>
+                                </div>
+
+                                {booking.trip_details.car && (
+                                  <div className="flex items-center text-gray-600">
+                                    <Car className="w-4 h-4 mr-2 text-gray-500" />
+                                    <span>{booking.trip_details.car.brand} {booking.trip_details.car.model}</span>
+                                    {booking.trip_details.car.plate_number && (
+                                      <span className="ml-2 px-2 py-1 bg-gray-100 rounded text-xs font-mono">
+                                        {booking.trip_details.car.plate_number}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Цена */}
+                          <div className="text-right ml-4">
+                            <div className="text-xl font-bold text-gray-900">
+                              {booking.trip_details ? 
+                                (parseFloat(booking.trip_details.price) * booking.seats_reserved).toLocaleString('ru-RU') 
+                                : '—'
+                              } ₽
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {booking.trip_details ? parseFloat(booking.trip_details.price).toLocaleString('ru-RU') : '—'} ₽ за место
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Дата создания брони */}
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                          <div className="text-sm text-gray-500">
+                            Забронировано: {new Date(booking.created_at).toLocaleDateString('ru-RU', { 
+                              day: 'numeric', 
+                              month: 'short', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+
+                          {/* Кнопки действий */}
+                          <div className="flex space-x-2">
+                            {booking.status === 'pending' && (
+                              <button
+                                onClick={() => handleCancelBooking(booking.id)}
+                                className="px-3 py-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded hover:bg-red-100 transition-colors"
+                              >
+                                Отменить
+                              </button>
+                            )}
+                            {booking.trip_details && (
+                              <button
+                                onClick={() => router.push(`/booking/${booking.trip_details.id}?passengers=${booking.seats_reserved}`)}
+                                className="px-3 py-1 text-xs font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded hover:bg-yellow-100 transition-colors"
+                              >
+                                Подробнее
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -329,12 +510,26 @@ function PassengerProfileContent() {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Статистика</h3>
               <div className="space-y-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Поездок:</span>
-                  <span className="font-medium">0</span>
+                  <span className="text-gray-600">Всего броней:</span>
+                  <span className="font-medium">{bookings?.length || 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Рейтинг:</span>
-                  <span className="font-medium">Новичок</span>
+                  <span className="text-gray-600">Активных:</span>
+                  <span className="font-medium text-green-600">
+                    {bookings?.filter(b => b.status === 'confirmed' || b.status === 'pending').length || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Завершённых:</span>
+                  <span className="font-medium text-blue-600">
+                    {bookings?.filter(b => b.status === 'completed').length || 0}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Отменённых:</span>
+                  <span className="font-medium text-red-600">
+                    {bookings?.filter(b => b.status === 'cancelled').length || 0}
+                  </span>
                 </div>
               </div>
             </div>

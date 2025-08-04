@@ -17,8 +17,8 @@ function ProfileContentWithLoading() {
     queryFn: authAPI.getProfile,
     select: (data) => data.data,
     onSuccess: (data) => {
-      console.log('Profile loaded:', data);
-      updateUser(data); // Обновляем с полными данными включая роль
+      // Обновляем с полными данными включая роль
+      updateUser(data); 
     },
     retry: 1,
   });

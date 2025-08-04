@@ -134,6 +134,11 @@ export const authAPI = {
       },
     });
   },
+
+  // Получение информации о пользователе по ID
+  getUser: (userId) => {
+    return api.get(`/auth/users/${userId}/`);
+  },
 };
 
 // API для поездок
@@ -142,6 +147,9 @@ export const ridesAPI = {
   getAvailableTrips: (routeId, date) => {
     let url = '/trips/';
     const params = [];
+    
+    // Логируем параметры для отладки
+    console.log('getAvailableTrips called with:', { routeId, date });
     
     // Всегда фильтруем только доступные поездки
     params.push('status=available');
@@ -159,6 +167,7 @@ export const ridesAPI = {
       url += '?' + params.join('&');
     }
     
+    console.log('Final API URL:', url);
     return api.get(url);
   },
   
@@ -177,16 +186,6 @@ export const ridesAPI = {
     return api.get(`/trips/${tripId}/`);
   },
   
-  // Забронировать поездку
-  bookTrip: (tripId, data) => {
-    return api.post(`/trips/${tripId}/book/`, data);
-  },
-  
-  // Получить мои бронирования
-  getMyBookings: () => {
-    return api.get('/bookings/my/');
-  },
-  
   // Создать поездку (для водителей)
   createTrip: (data) => {
     return api.post('/trips/', data);
@@ -196,13 +195,65 @@ export const ridesAPI = {
   updateTripStatus: (tripId, status) => {
     return api.patch(`/trips/${tripId}/`, { status });
   },
+
+  // Получить мои поездки (для водителей) с информацией о пассажирах
+  getMyTrips: () => {
+    return api.get('/trips/my/');
+  },
+};
+
+// API для бронирования
+export const bookingAPI = {
+  // Создать бронь
+  createBooking: (data) => {
+    return api.post('/bookings/', {
+      trip: data.tripId,
+      seats_reserved: data.seatsReserved
+    });
+  },
+  
+  // Получить мои брони
+  getMyBookings: () => {
+    return api.get('/bookings/');
+  },
+  
+  // Получить конкретную бронь
+  getBooking: (bookingId) => {
+    return api.get(`/bookings/${bookingId}/`);
+  },
+  
+  // Получить мои брони для конкретной поездки
+  getMyBookingForTrip: (tripId) => {
+    return api.get(`/bookings/`).then(response => {
+      const bookings = response.data || [];
+      const tripBooking = bookings.find(booking => booking.trip === parseInt(tripId));
+      return { data: tripBooking || null };
+    });
+  },
+  
+  // Отменить бронь
+  cancelBooking: (bookingId) => {
+    return api.patch(`/bookings/${bookingId}/`, { status: 'cancelled' });
+  },
+  
+  // Обновить бронь (изменить количество мест)
+  updateBooking: (bookingId, data) => {
+    return api.patch(`/bookings/${bookingId}/`, {
+      seats_reserved: data.seatsReserved || data.seats_reserved
+    });
+  },
 };
 
 
 
-export const vehicleAPI = {
+export const vehiclesAPI = {
   // Получить все автомобили
   getAllVehicles: () => {
+    return api.get('/vehicles/');
+  },
+
+  // Получить мои автомобили (водителя)
+  getMyVehicles: () => {
     return api.get('/vehicles/');
   },
 
@@ -300,5 +351,48 @@ export const vehicleAPI = {
   },
 };
 
+// API для маршрутов
+export const routesAPI = {
+  // Поиск маршрутов
+  searchRoutes: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    
+    if (params.from_city) {
+      queryParams.append('from_city', params.from_city);
+    }
+    if (params.to_city) {
+      queryParams.append('to_city', params.to_city);
+    }
+    
+    return api.get(`/routes/search/?${queryParams.toString()}`);
+  },
+
+  // Поиск маршрутов с доступными поездками
+  searchRoutesWithTrips: (params = {}) => {
+    const queryParams = new URLSearchParams();
+    
+    if (params.from_city) {
+      queryParams.append('from_city', params.from_city);
+    }
+    if (params.to_city) {
+      queryParams.append('to_city', params.to_city);
+    }
+    if (params.date) {
+      queryParams.append('date', params.date);
+    }
+    
+    return api.get(`/routes/with-trips/?${queryParams.toString()}`);
+  },
+
+  // Получить все маршруты
+  getAllRoutes: () => {
+    return api.get('/routes/');
+  },
+
+  // Создать новый маршрут
+  createRoute: (routeData) => {
+    return api.post('/routes/', routeData);
+  },
+};
 
 export default api; 

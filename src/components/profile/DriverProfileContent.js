@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Camera, Car, Save, Loader2, Calendar, Star, MapPin } from 'lucide-react';
 
 import { updateProfileSchema } from '../../lib/validationSchemas';
-import { authAPI, vehicleAPI } from '../../lib/api';
+import { authAPI, vehiclesAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 
 // Используем те же переиспользуемые компоненты
@@ -63,14 +63,14 @@ function DriverProfileContent() {
       
       // Затем загружаем автомобили
       try {
-        // Используем исправленную версию getMyVehicle
-        const vehiclesResponse = await vehicleAPI.getAllVehicles();
-        const allVehicles = vehiclesResponse.data;
-        const myUserId = profileResponse.data.id;
+        // Используем новый API метод для получения автомобилей водителя
+        const vehiclesResponse = await vehiclesAPI.getMyVehicles();
+        const myVehicles = vehiclesResponse.data;
         
-        // Ищем машину водителя по owner
-        const myVehicle = allVehicles.find(vehicle => vehicle.owner === myUserId);
+        // Берем первый автомобиль (если есть)
+        const myVehicle = myVehicles && myVehicles.length > 0 ? myVehicles[0] : null;
         
+        if (myVehicle) {
           setVehicleData(myVehicle);
           // ИСПРАВЛЕНИЕ: vehicle_image уже содержит полный URL
           setCarPhoto(myVehicle.vehicle_image || null);
@@ -81,6 +81,7 @@ function DriverProfileContent() {
             seats: myVehicle.seats || 4,
             plate_number: myVehicle.plate_number || '',
           });
+        }
       } catch (vehicleError) {
         console.log('🚨 Vehicles API error:', vehicleError);
       }
@@ -125,8 +126,8 @@ function DriverProfileContent() {
       };
       
       const response = vehicleData 
-        ? await vehicleAPI.updateVehicle(vehicleData.id, vehicleDataWithActiveFlag)
-        : await vehicleAPI.createVehicle(vehicleDataWithActiveFlag);
+        ? await vehiclesAPI.updateVehicle(vehicleData.id, vehicleDataWithActiveFlag)
+        : await vehiclesAPI.createVehicle(vehicleDataWithActiveFlag);
         
       setVehicleData(response.data);
       
@@ -203,7 +204,7 @@ function DriverProfileContent() {
 
       // Если машина уже существует - загружаем фото через API
       if (vehicleData?.id) {
-        const response = await vehicleAPI.updateVehiclePhoto(vehicleData.id, file);
+        const response = await vehiclesAPI.updateVehiclePhoto(vehicleData.id, file);
         console.log('Photo upload response:', response.data);
         
         const photoUrl = response.data.vehicle_image;
@@ -254,7 +255,7 @@ function DriverProfileContent() {
       setDeletingVehicle(true);
       setError(null);
       
-      await vehicleAPI.deleteVehicle(vehicleData.id);
+      await vehiclesAPI.deleteVehicle(vehicleData.id);
       console.log('✅ Vehicle deleted successfully');
       
       // Очищаем данные автомобиля
@@ -581,53 +582,75 @@ function DriverProfileContent() {
                     </select>
                   </div>
 
-                  {/* Кнопка сохранения автомобиля */}
-              {vehicleData ? (
-                      // Если автомобиль существует - показываем кнопки "Сохранить изменения" и "Удалить"
-                      <>
-                        <button
-                          type="button"
-                          onClick={onDeleteVehicle}
-                          disabled={deletingVehicle || savingVehicle}
-                          className="h-10 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors flex items-center justify-center space-x-2"
-                        >
-                          {deletingVehicle ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              <span>Удаляем...</span>
-                            </>
-                          ) : (
-                            <>
-                              <span>🗑️</span>
-                              <span>Удалить</span>
-                            </>
-                          )}
-                        </button>
-                      </>
-                    ) : (
-                      // Если автомобиля нет - показываем только кнопку "Добавить автомобиль"
+                  {/* Кнопки для автомобиля */}
+                  {vehicleData ? (
+                    // Если автомобиль существует - показываем кнопки "Сохранить изменения" и "Удалить"
+                    <div className="flex space-x-3">
                       <button
                         type="submit"
-                        disabled={savingVehicle || !vehicleForm.formState.isValid}
-                        className={`w-full h-10 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${
-                          vehicleForm.formState.isValid 
-                            ? 'bg-gradient-to-r from-blue-400 to-cyan-500 hover:from-blue-500 hover:to-cyan-600 text-white shadow-lg' 
+                        disabled={savingVehicle || !vehicleForm.formState.isDirty}
+                        className={`flex-1 h-10 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${
+                          vehicleForm.formState.isDirty
+                            ? 'bg-gradient-to-r from-blue-400 to-cyan-500 hover:from-blue-500 hover:to-cyan-600 text-white shadow-lg'
                             : 'bg-blue-100 text-blue-600 cursor-not-allowed'
                         } disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
                       >
                         {savingVehicle ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Добавляем автомобиль...
+                            Сохраняем...
                           </>
                         ) : (
                           <>
-                            <Car className="w-4 h-4 mr-2" />
-                            Добавить автомобиль
+                            <Save className="w-4 h-4 mr-2" />
+                            {vehicleForm.formState.isDirty ? 'Сохранить изменения' : 'Нет изменений'}
                           </>
                         )}
-                      </button> 
-                    )}
+                      </button>
+                      
+                      <button
+                        type="button"
+                        onClick={onDeleteVehicle}
+                        disabled={deletingVehicle || savingVehicle}
+                        className="h-10 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors flex items-center justify-center space-x-2"
+                      >
+                        {deletingVehicle ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Удаляем...</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>🗑️</span>
+                            <span>Удалить</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  ) : (
+                    // Если автомобиля нет - показываем только кнопку "Добавить автомобиль"
+                    <button
+                      type="submit"
+                      disabled={savingVehicle || !vehicleForm.formState.isValid}
+                      className={`w-full h-10 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${
+                        vehicleForm.formState.isValid 
+                          ? 'bg-gradient-to-r from-blue-400 to-cyan-500 hover:from-blue-500 hover:to-cyan-600 text-white shadow-lg' 
+                          : 'bg-blue-100 text-blue-600 cursor-not-allowed'
+                      } disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
+                    >
+                      {savingVehicle ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Добавляем автомобиль...
+                        </>
+                      ) : (
+                        <>
+                          <Car className="w-4 h-4 mr-2" />
+                          Добавить автомобиль
+                        </>
+                      )}
+                    </button> 
+                  )}
                 </form>
               </div>
             </div>

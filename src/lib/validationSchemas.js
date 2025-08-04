@@ -11,7 +11,7 @@ export const loginSchema = z.object({
     .min(1, 'Введите пароль'),
 });
 
-// Схема для регистрации (только для пассажиров)
+// Схема для регистрации
 export const registerSchema = z.object({
   username: z
     .string()
@@ -46,6 +46,12 @@ export const registerSchema = z.object({
     .max(254, 'Email не должен превышать 254 символа')
     .optional()
     .or(z.literal('')),
+
+  role: z
+    .enum(['passenger', 'driver'], {
+      required_error: 'Выберите тип пользователя',
+      invalid_type_error: 'Выберите корректный тип пользователя'
+    }),
 });
 
 // Схема для подтверждения SMS кода

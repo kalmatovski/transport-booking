@@ -73,9 +73,18 @@ function BookingPage() {
     },
     onError: (error) => {
       console.error('Booking error:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
       // Если ошибка связана с уникальностью, показываем предупреждение
-      if (error.response?.data?.non_field_errors?.[0]?.includes('unique')) {
+      if (error.response?.data?.non_field_errors?.[0]?.includes('unique') || 
+          error.response?.status === 400 && 
+          (error.response?.data?.detail?.includes('unique') || 
+           error.response?.data?.message?.includes('already exists'))) {
         setShowExistingBookingAlert(true);
+      } else {
+        // Показываем общую ошибку
+        alert(`Ошибка при создании бронирования: ${error.response?.data?.detail || error.response?.data?.message || error.message}`);
       }
     }
   });
@@ -103,6 +112,17 @@ function BookingPage() {
       return;
     }
 
+    // Валидация данных
+    if (!tripId || isNaN(parseInt(tripId))) {
+      alert('Некорректный ID поездки');
+      return;
+    }
+
+    if (!seatsToBook || seatsToBook < 1) {
+      alert('Некорректное количество мест для бронирования');
+      return;
+    }
+
     // Если у пользователя уже есть бронь на эту поездку
     if (existingBooking && existingBooking.status !== 'cancelled') {
       // Обновляем существующую бронь
@@ -113,6 +133,11 @@ function BookingPage() {
       });
     } else {
       // Создаем новую бронь
+      console.log('Creating booking with:', {
+        tripId: parseInt(tripId),
+        seatsReserved: seatsToBook
+      });
+      
       bookingMutation.mutate({
         tripId: parseInt(tripId),
         seatsReserved: seatsToBook

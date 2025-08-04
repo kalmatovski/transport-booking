@@ -5,11 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { 
   CheckCircle, 
-  Car, 
+  Car,
   MapPin, 
   Calendar, 
   Users, 
-  Clock,
   Phone,
   MessageCircle,
   Home,
@@ -19,6 +18,7 @@ import {
 import { bookingAPI } from '../../../lib/api';
 import { Button, Card, CardContent, LoadingSpinner } from '../../../components/ui';
 import { withAuth } from '../../../components/withAuth';
+import { AppLayout } from '../../../components/layout/AppLayout';
 
 function BookingSuccessPage() {
   const router = useRouter();
@@ -33,9 +33,35 @@ function BookingSuccessPage() {
   } = useQuery({
     queryKey: ['booking', bookingId],
     queryFn: () => bookingAPI.getBooking(bookingId),
-    select: (data) => data.data,
+    select: (data) => {
+      console.log('Booking API response:', data); // Для отладки
+      return data.data || data;
+    },
     enabled: !!bookingId,
   });
+
+  // Отладочная информация
+  useEffect(() => {
+    if (booking) {
+      console.log('=== BOOKING DEBUG ===');
+      console.log('Full booking data:', booking);
+      console.log('Trip data:', booking.trip_details || booking.trip);
+      console.log('Route data:', booking.trip_details?.route || booking.trip?.route);
+      console.log('Price:', booking.trip_details?.price || booking.trip?.price);
+      console.log('Departure time:', booking.trip_details?.departure_time || booking.trip?.departure_time);
+      console.log('====================');
+    }
+  }, [booking]);
+
+  // Получаем правильные данные из разных возможных структур
+  const tripData = booking?.trip_details || booking?.trip;
+  const routeData = tripData?.route;
+  const fromCity = routeData?.from_city;
+  const toCity = routeData?.to_city;
+  const departureTime = tripData?.departure_time;
+  const arrivalTime = tripData?.arrival_time;
+  const price = tripData?.price;
+  const seatsReserved = booking?.seats_reserved;
 
   const formatDateTime = (dateTimeString) => {
     if (!dateTimeString) return '';
@@ -55,62 +81,40 @@ function BookingSuccessPage() {
 
   if (bookingLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <AppLayout>
+        <div className="flex items-center justify-center h-96">
+          <LoadingSpinner size="lg" />
+        </div>
+      </AppLayout>
     );
   }
 
   if (bookingError || !booking) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <Card className="max-w-md w-full mx-4">
-          <CardContent className="p-8 text-center">
-            <Car className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Бронирование не найдено
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Возможно, произошла ошибка при создании бронирования
-            </p>
-            <Button onClick={() => router.push('/')} variant="outline">
-              <Home className="w-4 h-4 mr-2" />
-              На главную
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+      <AppLayout>
+        <div className="flex items-center justify-center h-96">
+          <Card className="max-w-md w-full mx-4">
+            <CardContent className="p-8 text-center">
+              <Car className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Бронирование не найдено
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Возможно, произошла ошибка при создании бронирования
+              </p>
+              <Button onClick={() => router.push('/')} variant="outline">
+                <Home className="w-4 h-4 mr-2" />
+                На главную
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* Хедер */}
-      <header className="bg-white/80 backdrop-blur-md shadow-lg border-b border-blue-200/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-xl shadow-lg">
-                <Car className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                TransportBook
-              </span>
-            </div>
-            
-            <Button
-              variant="ghost"
-              onClick={() => router.push('/profile')}
-              className="flex items-center space-x-2 hover:bg-blue-50/80"
-            >
-              <User className="w-4 h-4" />
-              <span>Профиль</span>
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      {/* Основной контент */}
+    <AppLayout>
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Успешное сообщение */}
         <div className="text-center mb-8">
@@ -142,22 +146,22 @@ function BookingSuccessPage() {
                 <div className="flex justify-between items-center py-3 border-b border-slate-200/50">
                   <span className="text-slate-600">Маршрут:</span>
                   <span className="font-semibold text-slate-800">
-                    {booking.trip?.route?.from_city || 'Неизвестно'} → {booking.trip?.route?.to_city || 'Неизвестно'}
+                    {fromCity && toCity ? `${fromCity} → ${toCity}` : 'Маршрут загружается...'}
                   </span>
                 </div>
 
                 <div className="flex justify-between items-center py-3 border-b border-slate-200/50">
                   <span className="text-slate-600">Отправление:</span>
                   <span className="font-semibold text-slate-800">
-                    {formatDateTime(booking.trip?.departure_time)}
+                    {departureTime ? formatDateTime(departureTime) : 'Время загружается...'}
                   </span>
                 </div>
 
-                {booking.trip?.arrival_time && (
+                {arrivalTime && (
                   <div className="flex justify-between items-center py-3 border-b border-slate-200/50">
                     <span className="text-slate-600">Прибытие:</span>
                     <span className="font-semibold text-slate-800">
-                      {formatDateTime(booking.trip?.arrival_time)}
+                      {formatDateTime(arrivalTime)}
                     </span>
                   </div>
                 )}
@@ -166,14 +170,17 @@ function BookingSuccessPage() {
                   <span className="text-slate-600">Забронировано мест:</span>
                   <span className="font-semibold text-slate-800 flex items-center">
                     <Users className="w-4 h-4 mr-1" />
-                    {booking.seats_reserved}
+                    {seatsReserved || 1}
                   </span>
                 </div>
 
                 <div className="flex justify-between items-center py-3">
                   <span className="text-slate-600">Общая стоимость:</span>
                   <span className="text-2xl font-bold text-blue-600">
-                    {(parseFloat(booking.trip?.price || 0) * booking.seats_reserved).toLocaleString('ru-RU')} ₽
+                    {price && seatsReserved ? 
+                      (parseFloat(price) * seatsReserved).toLocaleString('ru-RU') : 
+                      'Загружается...'
+                    } ₽
                   </span>
                 </div>
               </div>
@@ -221,7 +228,9 @@ function BookingSuccessPage() {
 
                 <div className="pt-4">
                   <h3 className="font-semibold text-slate-800 mb-3">Водитель</h3>
-                  <p className="text-slate-700 mb-3">Водитель #{booking.trip?.driver}</p>
+                  <p className="text-slate-700 mb-3">
+                    Водитель #{tripData?.driver || 'Неизвестно'}
+                  </p>
                   
                   <div className="flex space-x-3">
                     <Button variant="outline" className="flex-1">
@@ -272,7 +281,7 @@ function BookingSuccessPage() {
           </Button>
         </div>
       </main>
-    </div>
+    </AppLayout>
   );
 }
 

@@ -206,10 +206,13 @@ export const ridesAPI = {
 export const bookingAPI = {
   // Создать бронь
   createBooking: (data) => {
-    return api.post('/bookings/', {
+    console.log('Creating booking with data:', data); // Отладочная информация
+    const requestData = {
       trip: data.tripId,
       seats_reserved: data.seatsReserved
-    });
+    };
+    console.log('Request data:', requestData); // Отладочная информация
+    return api.post('/bookings/', requestData);
   },
   
   // Получить мои брони

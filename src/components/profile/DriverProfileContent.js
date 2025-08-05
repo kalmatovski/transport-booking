@@ -1,4 +1,3 @@
-// src/components/profile/DriverProfileContent.js (УПРОЩЕННАЯ ВЕРСИЯ)
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -11,7 +10,6 @@ import { updateProfileSchema } from '../../lib/validationSchemas';
 import { authAPI, vehiclesAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 
-// Используем те же переиспользуемые компоненты
 import { LoadingState, ErrorState, ProfileHeader, NotificationBanner } from './ProfileStates';
 import VehicleFormSection from './VehicleFormSection';
 
@@ -19,7 +17,6 @@ function DriverProfileContent() {
   const router = useRouter();
   const { user, updateUser } = useAuthStore();
   
-  // Состояния (упрощено)
   const [profileData, setProfileData] = useState(null);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [vehicleData, setVehicleData] = useState(null);
@@ -35,40 +32,32 @@ function DriverProfileContent() {
   
   const fileInputRef = useRef(null);
 
-  // Формы (только для профиля)
   const profileForm = useForm({
     resolver: zodResolver(updateProfileSchema),
   });
 
-  // Загрузка данных
   const loadProfile = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Сначала загружаем профиль
       const profileResponse = await authAPI.getProfile();
       
       setProfileData(profileResponse.data);
       setProfilePhoto(profileResponse.data.avatar ? `http://127.0.0.1:8000${profileResponse.data.avatar}` : null);
       profileForm.reset(profileResponse.data);
       
-      // Затем загружаем автомобили
       try {
-        // Используем новый API метод для получения автомобилей водителя
         const vehiclesResponse = await vehiclesAPI.getMyVehicles();
         const myVehicles = vehiclesResponse.data;
         
-        // Берем первый автомобиль (если есть)
         const myVehicle = myVehicles && myVehicles.length > 0 ? myVehicles[0] : null;
         
         if (myVehicle) {
           setVehicleData(myVehicle);
-          // ИСПРАВЛЕНИЕ: vehicle_image уже содержит полный URL
           setCarPhoto(myVehicle.vehicle_image || null);
         }
       } catch (vehicleError) {
-        console.log('🚨 Vehicles API error:', vehicleError);
       }
       
     } catch (err) {
@@ -78,7 +67,6 @@ function DriverProfileContent() {
     }
   };
 
-  // Сохранение профиля
   const onSubmitProfile = async (data) => {
     try {
       setSaving(true);
@@ -95,13 +83,11 @@ function DriverProfileContent() {
     }
   };
 
-  // Сохранение данных автомобиля - обновлено для VehicleFormSection
   const handleVehicleSave = async (data) => {
     try {
       setSavingVehicle(true);
       setError(null);
       
-      // Добавляем is_active: true при создании/обновлении
       const vehicleDataWithActiveFlag = {
         ...data,
         is_active: true  // 🔧 ИСПРАВЛЕНИЕ: всегда активная машина
@@ -113,7 +99,6 @@ function DriverProfileContent() {
         
       setVehicleData(response.data);
       
-      // Перезагружаем профиль для получения актуальных данных
       await loadProfile();
       
       setSaveSuccess(true);
@@ -125,7 +110,6 @@ function DriverProfileContent() {
     }
   };
 
-  // Загрузка фото профиля  
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -133,7 +117,6 @@ function DriverProfileContent() {
     try {
       setUploadingPhoto(true);
       
-      // Проверки файла
       if (file.size > 5 * 1024 * 1024) {
         throw new Error('Файл слишком большой. Максимальный размер: 5MB');
       }
@@ -142,21 +125,18 @@ function DriverProfileContent() {
         throw new Error('Пожалуйста, выберите изображение');
       }
 
-      // Показываем превью сразу
       const reader = new FileReader();
       reader.onload = (e) => setProfilePhoto(e.target.result);
       reader.readAsDataURL(file);
 
       const response = await authAPI.updateAvatar(file);
       
-      // Перезагружаем профиль для получения актуального URL аватара
       await loadProfile();
       
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       setError('Ошибка загрузки фото профиля');
-      // Возвращаем старое фото при ошибке
       if (profileData?.avatar) {
         setProfilePhoto(`http://127.0.0.1:8000${profileData.avatar}`);
       } else {
@@ -167,7 +147,6 @@ function DriverProfileContent() {
     }
   };
 
-  // Загрузка фото автомобиля - обновлено для VehicleFormSection
   const handleVehiclePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -175,7 +154,6 @@ function DriverProfileContent() {
     try {
       setUploadingCarPhoto(true);
       
-      // Проверки файла
       if (file.size > 5 * 1024 * 1024) {
         throw new Error('Файл слишком большой. Максимальный размер: 5MB');
       }
@@ -184,10 +162,8 @@ function DriverProfileContent() {
         throw new Error('Пожалуйста, выберите изображение');
       }
 
-      // Если машина уже существует - загружаем фото через API
       if (vehicleData?.id) {
         const response = await vehiclesAPI.updateVehiclePhoto(vehicleData.id, file);
-        console.log('Photo upload response:', response.data);
         
         const photoUrl = response.data.vehicle_image;
         if (photoUrl) {
@@ -200,7 +176,6 @@ function DriverProfileContent() {
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
       } else {
-        // Если машины нет - показываем предварительный просмотр
         const reader = new FileReader();
         reader.onload = (e) => setCarPhoto(e.target.result);
         reader.readAsDataURL(file);
@@ -218,7 +193,6 @@ function DriverProfileContent() {
     loadProfile();
   }, []);
 
-  // Удаление автомобиля - обновлено для VehicleFormSection
   const handleVehicleDelete = async () => {
     if (!vehicleData) return;
     
@@ -233,9 +207,7 @@ function DriverProfileContent() {
       setError(null);
       
       await vehiclesAPI.deleteVehicle(vehicleData.id);
-      console.log('✅ Vehicle deleted successfully');
       
-      // Очищаем данные автомобиля
       setVehicleData(null);
       setCarPhoto(null);
       
@@ -243,14 +215,12 @@ function DriverProfileContent() {
       setTimeout(() => setSaveSuccess(false), 3000);
       
     } catch (err) {
-      console.error('Failed to delete vehicle:', err);
       setError(err.response?.data?.detail || err.message || 'Ошибка при удалении автомобиля');
     } finally {
       setDeletingVehicle(false);
     }
   };
 
-  // Используем переиспользуемые компоненты с зеленой цветовой схемой
   if (loading) {
     return <LoadingState colorScheme="green" message="Загружаем профиль водителя..." />;
   }

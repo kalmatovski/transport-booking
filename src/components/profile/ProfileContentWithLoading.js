@@ -1,4 +1,3 @@
-// src/components/profile/ProfileContentWithLoading.js
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
@@ -11,13 +10,11 @@ import PassengerProfileContent from './PassengerProfileContent';
 function ProfileContentWithLoading() {
   const { updateUser } = useAuthStore();
   
-  // Загружаем профиль для определения роли
   const { data: profile, isLoading, error } = useQuery({
     queryKey: ['profile'],
     queryFn: authAPI.getProfile,
     select: (data) => data.data,
     onSuccess: (data) => {
-      // Обновляем с полными данными включая роль
       updateUser(data); 
     },
     retry: 1,

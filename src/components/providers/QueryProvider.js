@@ -10,7 +10,6 @@ export default function QueryProvider({ children }) {
       queries: {
         ...queryConfig.defaultOptions.queries,
         retry: (failureCount, error) => {
-          // Не повторяем запрос при 401, 403, 404
           if (error?.response?.status >= 400 && error?.response?.status < 500) {
             return false;
           }

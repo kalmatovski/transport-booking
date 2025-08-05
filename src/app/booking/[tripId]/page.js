@@ -132,12 +132,6 @@ function BookingPage() {
         data: { seats_reserved: newTotalSeats }
       });
     } else {
-      // Создаем новую бронь
-      console.log('Creating booking with:', {
-        tripId: parseInt(tripId),
-        seatsReserved: seatsToBook
-      });
-      
       bookingMutation.mutate({
         tripId: parseInt(tripId),
         seatsReserved: seatsToBook

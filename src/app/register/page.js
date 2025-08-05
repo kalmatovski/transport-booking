@@ -16,7 +16,6 @@ function RegisterPage() {
   const router = useRouter();
   const { login } = useAuthStore();
 
-  // Форма регистрации
   const {
     register,
     handleSubmit,
@@ -36,11 +35,9 @@ function RegisterPage() {
   });
 
 
-  // Мутация регистрации
   const registerMutation = useMutation({
     mutationFn: authAPI.register,
     onSuccess: async (response, variables) => {
-      // После успешной регистрации сразу пытаемся войти
       try {
         const loginResponse = await authAPI.login({
           username: variables.username,
@@ -49,15 +46,12 @@ function RegisterPage() {
         
         const { access, refresh, user } = loginResponse.data;
         
-        // Сохраняем токены и данные пользователя из ответа логина
         login(user, access, refresh);
         
-        // Перенаправляем на главную
         router.push('/');
         
       } catch (loginError) {
         console.error('Auto-login failed:', loginError);
-        // Если автоматический вход не удался, перенаправляем на логин
         router.push('/login?message=registration_success');
       }
     },
@@ -67,7 +61,6 @@ function RegisterPage() {
   });
 
   const onSubmit = (data) => {
-    // Всегда регистрируем как пассажира
     const cleanData = {
       username: data.username,
       password: data.password,

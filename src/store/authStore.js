@@ -10,7 +10,6 @@ export const useAuthStore = create(
       refreshToken: null,
       isHydrated: false,
       
-      // Действия для login с JWT токенами
       login: (userData, accessToken, refreshToken) => {
         set({
           user: userData,
@@ -20,7 +19,6 @@ export const useAuthStore = create(
         });
       },
       
-      // Обновление только access токена (при refresh)
       updateTokens: (newAccessToken, newRefreshToken) => {
         set({
           accessToken: newAccessToken,
@@ -28,7 +26,6 @@ export const useAuthStore = create(
         });
       },
       
-      // Обновление пользователя (когда получим профиль) - ИСПРАВЛЕНО
       setUser: (userData) => {
         set(state => ({
           user: { ...state.user, ...userData }
@@ -50,25 +47,21 @@ export const useAuthStore = create(
         }));
       },
 
-      // Завершаем гидратацию
       setHydrated: () => {
         set({ isHydrated: true });
       },
       
-      // Геттеры
       getUser: () => get().user,
       getToken: () => get().accessToken,
       getAccessToken: () => get().accessToken,
       getRefreshToken: () => get().refreshToken,
       isLoggedIn: () => get().isAuthenticated,
       
-      // Проверка есть ли действующие токены
       hasValidTokens: () => {
         const { accessToken, refreshToken } = get();
         return !!(accessToken && refreshToken);
       },
       
-      // Проверка ролей
       isDriver: () => get().user?.role === 'driver',
       isPassenger: () => get().user?.role === 'passenger',
     }),
@@ -78,7 +71,6 @@ export const useAuthStore = create(
         if (typeof window !== 'undefined') {
           return localStorage;
         }
-        // Для сервера возвращаем пустое хранилище
         return {
           getItem: () => null,
           setItem: () => {},
@@ -86,26 +78,18 @@ export const useAuthStore = create(
         };
       }),
       
-      // ИСПРАВЛЕНО: Сохраняем только безопасные данные
       partialize: (state) => ({
-        // Сохраняем только refresh токен (он менее критичен)
         refreshToken: state.refreshToken,
-        // Сохраняем только роль пользователя (без персональных данных)
         userRole: state.user?.role,
-        // Флаг авторизации
         isAuthenticated: state.isAuthenticated,
-        // ACCESS TOKEN и полный USER НЕ СОХРАНЯЕМ
       }),
       
-      // ИСПРАВЛЕНО: Правильная гидратация
       onRehydrateStorage: () => (state) => {
         if (state) {
-          // Восстанавливаем минимальные пользовательские данные
           if (state.userRole && state.isAuthenticated) {
             state.user = { role: state.userRole };
           }
           
-          // Помечаем как гидратированное с задержкой для избежания mismatch
           setTimeout(() => {
             if (state.setHydrated) {
               state.setHydrated();

@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+﻿import { forwardRef } from 'react';
 import { Loader2 } from 'lucide-react';
 export const Button = forwardRef(({ 
   children, 
@@ -9,14 +9,12 @@ export const Button = forwardRef(({
   className = '', 
   ...props 
 }, ref) => {
-  // Базовые стили для всех кнопок
   const baseStyles = `
     inline-flex items-center justify-center rounded-lg font-medium
     transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2
     disabled:opacity-50 disabled:cursor-not-allowed
   `;
 
-  // Варианты с ТОЛЬКО стандартными Tailwind цветами
   const variants = {
     default: `
       bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600
@@ -58,7 +56,6 @@ export const Button = forwardRef(({
 });
 Button.displayName = 'Button';
 
-// Простой Input с желтыми акцентами (ТОЛЬКО стандартные цвета)
 export const Input = forwardRef(({ 
   label, 
   error, 
@@ -99,7 +96,6 @@ export const Input = forwardRef(({
 });
 Input.displayName = 'Input';
 
-// Простая Card (ТОЛЬКО стандартные цвета)
 export const Card = ({ children, className = '', ...props }) => {
   return (
     <div
@@ -115,7 +111,6 @@ export const Card = ({ children, className = '', ...props }) => {
   );
 };
 
-// CardHeader с желтым градиентом (ТОЛЬКО стандартные цвета)
 export const CardHeader = ({ children, className = '', ...props }) => {
   return (
     <div 
@@ -130,7 +125,6 @@ export const CardHeader = ({ children, className = '', ...props }) => {
   );
 };
 
-// CardContent
 export const CardContent = ({ children, className = '', ...props }) => {
   return (
     <div className={`p-6 ${className}`} {...props}>
@@ -139,7 +133,6 @@ export const CardContent = ({ children, className = '', ...props }) => {
   );
 };
 
-// Alert с желтыми цветами (ТОЛЬКО стандартные цвета)
 export const Alert = ({ children, variant = 'default', className = '' }) => {
   const variants = {
     default: 'bg-yellow-50 border-yellow-200 text-yellow-800',
@@ -158,7 +151,6 @@ export const Alert = ({ children, variant = 'default', className = '' }) => {
   );
 };
 
-// LoadingSpinner (ТОЛЬКО стандартные цвета)
 export const LoadingSpinner = ({ className = '', ...props }) => {
   return (
     <Loader2

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../store/authStore';
 import { LoadingSpinner } from './ui';
 
-// HOC для защищенных страниц
 export const withAuth = (WrappedComponent) => {
   const AuthWrapper = (props) => {
     const { isAuthenticated, isLoading } = useAuthStore();
@@ -17,7 +16,6 @@ export const withAuth = (WrappedComponent) => {
       }
     }, [isAuthenticated, isLoading, router]);
 
-    // Показываем загрузку пока проверяем авторизацию
     if (isLoading) {
       return (
         <div className="min-h-screen flex items-center justify-center">
@@ -26,12 +24,10 @@ export const withAuth = (WrappedComponent) => {
       );
     }
 
-    // Если не авторизован, показываем пустую страницу (идет редирект)
     if (!isAuthenticated) {
       return null;
     }
 
-    // Если авторизован, показываем компонент
     return <WrappedComponent {...props} />;
   };
 
@@ -40,7 +36,6 @@ export const withAuth = (WrappedComponent) => {
   return AuthWrapper;
 };
 
-// HOC для страниц только для гостей (login, register)
 export const withGuest = (WrappedComponent) => {
   const GuestWrapper = (props) => {
     const { isAuthenticated, isLoading } = useAuthStore();
@@ -52,7 +47,6 @@ export const withGuest = (WrappedComponent) => {
       }
     }, [isAuthenticated, isLoading, router]);
 
-    // Показываем загрузку пока проверяем авторизацию
     if (isLoading) {
       return (
         <div className="min-h-screen flex items-center justify-center">
@@ -61,12 +55,10 @@ export const withGuest = (WrappedComponent) => {
       );
     }
 
-    // Если авторизован, показываем пустую страницу (идет редирект)
     if (isAuthenticated) {
       return null;
     }
 
-    // Если не авторизован, показываем компонент
     return <WrappedComponent {...props} />;
   };
 

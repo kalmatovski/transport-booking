@@ -1,6 +1,5 @@
 import { z } from 'zod';
 
-// Схема для входа
 export const loginSchema = z.object({
   username: z
     .string()
@@ -11,7 +10,6 @@ export const loginSchema = z.object({
     .min(1, 'Введите пароль'),
 });
 
-// Схема для регистрации
 export const registerSchema = z.object({
   username: z
     .string()
@@ -54,7 +52,6 @@ export const registerSchema = z.object({
     }),
 });
 
-// Схема для подтверждения SMS кода
 export const verifySMSSchema = z.object({
   code: z
     .string()
@@ -62,7 +59,6 @@ export const verifySMSSchema = z.object({
     .regex(/^\d+$/, 'Код должен содержать только цифры'),
 });
 
-// Упрощенная схема для обновления профиля
 export const updateProfileSchema = z.object({
   first_name: z
     .string()
@@ -90,7 +86,6 @@ export const updateProfileSchema = z.object({
     .optional()
     .or(z.literal('')),
   
-  // Поля для водителя
   car_model: z
     .string()
     .optional()
@@ -102,7 +97,6 @@ export const updateProfileSchema = z.object({
     .or(z.literal('')),
 });
 
-// Схема для бронирования поездки
 export const bookRideSchema = z.object({
   routeId: z.number().min(1, 'Выберите маршрут'),
   driverId: z.number().min(1, 'Выберите водителя'),

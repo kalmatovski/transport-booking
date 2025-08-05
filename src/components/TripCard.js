@@ -1,6 +1,3 @@
-// src/components/TripCard.js
-// 🚀 Оптимизированный компонент карточки поездки
-
 'use client';
 
 import { memo, useCallback } from 'react';
@@ -16,7 +13,6 @@ const TripCard = memo(({
   getStatusText, 
   onBooking 
 }) => {
-  // 🚀 Мемоизируем обработчик клика
   const handleBookingClick = useCallback(() => {
     onBooking(trip);
   }, [trip, onBooking]);
@@ -26,7 +22,6 @@ const TripCard = memo(({
       className="bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl hover:shadow-2xl transition-all duration-200"
     >
       <CardContent className="p-8">
-        {/* Информация о маршруте */}
         <div className="mb-6">
           <h3 className="text-xl font-bold text-slate-800 flex items-center">
             <div className="bg-gradient-to-br from-blue-100 to-indigo-200 p-2 rounded-xl mr-3">

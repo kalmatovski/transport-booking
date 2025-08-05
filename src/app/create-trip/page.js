@@ -36,14 +36,12 @@ export default function CreateTripPage() {
 
   const [errors, setErrors] = useState({});
 
-  // Загружаем маршруты
   const { data: routes = [], isLoading: routesLoading } = useQuery({
     queryKey: ['routes'],
     queryFn: routesAPI.getAllRoutes,
     select: (data) => data?.data || data || [],
   });
 
-  // Загружаем автомобили водителя
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery({
     queryKey: ['my-vehicles'],
     queryFn: vehiclesAPI.getMyVehicles,
@@ -51,7 +49,6 @@ export default function CreateTripPage() {
     enabled: isAuthenticated && user?.role === 'driver',
   });
 
-  // Мутация для создания поездки
   const createTripMutation = useMutation({
     mutationFn: ridesAPI.createTrip,
     onSuccess: () => {
@@ -73,7 +70,6 @@ export default function CreateTripPage() {
       [name]: value
     }));
     
-    // Очищаем ошибку для этого поля
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -86,7 +82,6 @@ export default function CreateTripPage() {
     e.preventDefault();
     setErrors({});
 
-    // Валидация
     const newErrors = {};
     if (!formData.route_id) newErrors.route_id = ['Выберите маршрут'];
     if (!formData.car_id) newErrors.car_id = ['Выберите автомобиль'];
@@ -99,7 +94,6 @@ export default function CreateTripPage() {
       return;
     }
 
-    // Отправляем данные
     createTripMutation.mutate({
       ...formData,
       route_id: parseInt(formData.route_id),
@@ -109,7 +103,6 @@ export default function CreateTripPage() {
     });
   };
 
-  // Проверяем права доступа
   if (!isAuthenticated || user?.role !== 'driver') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">

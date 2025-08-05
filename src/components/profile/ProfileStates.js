@@ -1,7 +1,5 @@
-// src/components/profile/ProfileStates.js
 import { ArrowLeft, Loader2 } from 'lucide-react';
 
-// Универсальное состояние загрузки
 export const LoadingState = ({ 
   colorScheme = 'yellow', // yellow, green, blue
   message = 'Загружаем профиль...' 
@@ -24,7 +22,6 @@ export const LoadingState = ({
   );
 };
 
-// Универсальное состояние ошибки
 export const ErrorState = ({ 
   colorScheme = 'yellow',
   title = 'Ошибка загрузки профиля',
@@ -70,7 +67,6 @@ export const ErrorState = ({
   );
 };
 
-// Универсальный хедер профиля
 export const ProfileHeader = ({ 
   colorScheme = 'yellow',
   title,
@@ -105,7 +101,6 @@ export const ProfileHeader = ({
   );
 };
 
-// Универсальный компонент уведомлений
 export const NotificationBanner = ({ 
   type = 'success', // success, error
   message,

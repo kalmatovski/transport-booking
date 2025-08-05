@@ -25,11 +25,9 @@ export default function HomePage() {
   const router = useRouter();
   const [selectedRoute, setSelectedRoute] = useState('');
 
-  // 🚀 ОПТИМИЗАЦИЯ: Мемоизируем роль пользователя (ВАЖНО: определяем ДО использования в queries)
   const isDriver = useMemo(() => user?.role === 'driver', [user?.role]);
   const isPassenger = useMemo(() => user?.role === 'passenger', [user?.role]);
 
-  // 🚀 Используем custom hook для поездок
   const { 
     data: availableTrips = [], 
     isLoading: tripsLoading,
@@ -37,7 +35,6 @@ export default function HomePage() {
     refetch: refetchTrips
   } = useTrips(selectedRoute, null, isAuthenticated && isPassenger);
 
-  // 🚀 ОПТИМИЗАЦИЯ: Мемоизируем функции
   const handleSearch = useCallback(() => {
     refetchTrips();
   }, [refetchTrips]);
@@ -50,7 +47,6 @@ export default function HomePage() {
     router.push(`/booking/${trip.id}`);
   }, [isAuthenticated, router]);
 
-  // 🚀 ОПТИМИЗАЦИЯ: Мемоизируем функции форматирования
   const formatTime = useCallback((dateTimeString) => {
     if (!dateTimeString) return '';
     return new Date(dateTimeString).toLocaleTimeString('ru-RU', {
@@ -84,7 +80,6 @@ export default function HomePage() {
     }
   }, [formatTime, formatDate]);
 
-  // 🚀 ОПТИМИЗАЦИЯ: Мемоизируем функции статуса
   const getStatusColor = useCallback((status) => {
     switch (status) {
       case 'available':

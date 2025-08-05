@@ -14,19 +14,16 @@ function ProfilePage() {
   const isHydrated = useIsHydrated(); // Используем наш хук вместо zustand
   const { user, isAuthenticated, isDriver, isPassenger } = useAuthStore();
 
-  // Проверяем авторизацию ТОЛЬКО после гидратации
   useEffect(() => {
     if (isHydrated && !isAuthenticated) {
       router.push('/login');
     }
   }, [isAuthenticated, isHydrated, router]);
 
-  // ВАЖНО: Не рендерим ничего до полной гидратации
   if (!isHydrated) {
     return null; // Возвращаем null для сервера
   }
 
-  // Показываем загрузку если не авторизован
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -43,7 +40,6 @@ function ProfilePage() {
       ) : user?.role === 'passenger' ? (
         <PassengerProfileContent />
       ) : (
-        // Если роли нет, загружаем профиль и определяем роль
         <ProfileContentWithLoading />
       )}
     </div>

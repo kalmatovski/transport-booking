@@ -1,4 +1,3 @@
-// src/components/profile/PassengerProfileContent.js (УПРОЩЕННАЯ ВЕРСИЯ)
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -12,14 +11,12 @@ import { updateProfileSchema } from '../../lib/validationSchemas';
 import { authAPI, bookingAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 
-// Импортируем новые переиспользуемые компоненты
 import { LoadingState, ErrorState, ProfileHeader, NotificationBanner } from './ProfileStates';
 
 function PassengerProfileContent() {
   const router = useRouter();
   const { user, updateUser } = useAuthStore();
   
-  // Состояния (упрощено)
   const [profileData, setProfileData] = useState(null);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +27,6 @@ function PassengerProfileContent() {
   
   const fileInputRef = useRef(null);
 
-  // Загружаем брони пассажира
   const { 
     data: bookings, 
     isLoading: bookingsLoading,
@@ -41,7 +37,6 @@ function PassengerProfileContent() {
     select: (data) => data.data || [],
   });
 
-  // Форма профиля
   const {
     register,
     handleSubmit,
@@ -52,7 +47,6 @@ function PassengerProfileContent() {
     resolver: zodResolver(updateProfileSchema),
   });
 
-  // Загрузка профиля
   const loadProfile = async () => {
     try {
       setLoading(true);
@@ -68,7 +62,6 @@ function PassengerProfileContent() {
     }
   };
 
-  // Сохранение профиля
   const onSubmit = async (data) => {
     try {
       setSaving(true);
@@ -85,7 +78,6 @@ function PassengerProfileContent() {
     }
   };
 
-  // Загрузка фото
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -93,7 +85,6 @@ function PassengerProfileContent() {
     try {
       setUploadingPhoto(true);
       
-      // Проверки файла
       if (file.size > 5 * 1024 * 1024) {
         throw new Error('Файл слишком большой. Максимальный размер: 5MB');
       }
@@ -102,21 +93,18 @@ function PassengerProfileContent() {
         throw new Error('Пожалуйста, выберите изображение');
       }
 
-      // Показываем превью сразу
       const reader = new FileReader();
       reader.onload = (e) => setProfilePhoto(e.target.result);
       reader.readAsDataURL(file);
 
       const response = await authAPI.updateAvatar(file);
       
-      // Перезагружаем профиль для получения актуального URL аватара
       await loadProfile();
       
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       setError('Ошибка загрузки фото профиля');
-      // Возвращаем старое фото при ошибке
       if (profileData?.avatar) {
         setProfilePhoto(`http://127.0.0.1:8000${profileData.avatar}`);
       } else {
@@ -131,7 +119,6 @@ function PassengerProfileContent() {
     loadProfile();
   }, []);
 
-  // Функции для форматирования данных броней
   const formatDateTime = (dateTimeString) => {
     if (!dateTimeString) return 'Не указано';
     const date = new Date(dateTimeString);
@@ -181,14 +168,12 @@ function PassengerProfileContent() {
   const handleCancelBooking = async (bookingId) => {
     try {
       await bookingAPI.cancelBooking(bookingId);
-      // Перезагружаем данные
       window.location.reload();
     } catch (error) {
       console.error('Ошибка отмены брони:', error);
     }
   };
 
-  // Используем новые переиспользуемые компоненты
   if (loading) {
     return <LoadingState colorScheme="yellow" message="Загружаем профиль..." />;
   }

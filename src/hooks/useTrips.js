@@ -7,7 +7,6 @@ export function useTrips(selectedRoute, selectedDate, isEnabled = true) {
     queryFn: () => ridesAPI.getAvailableTrips(selectedRoute, selectedDate),
     select: (data) => {
       const trips = data?.data || [];
-      // Фильтруем поездки - показываем только будущие
       const now = new Date();
       return trips.filter(trip => {
         const departureTime = new Date(trip.departure_time);

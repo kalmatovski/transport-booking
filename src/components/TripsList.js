@@ -14,7 +14,6 @@ export function TripsList({
   onBooking,
   showResults = true
 }) {
-  // Если результаты не должны показываться, возвращаем null
   if (!showResults) {
     return null;
   }

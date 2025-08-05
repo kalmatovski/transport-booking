@@ -25,7 +25,6 @@ function BookingSuccessPage() {
   const searchParams = useSearchParams();
   const bookingId = searchParams.get('bookingId');
 
-  // Загружаем данные о бронировании
   const { 
     data: booking, 
     isLoading: bookingLoading,
@@ -34,26 +33,11 @@ function BookingSuccessPage() {
     queryKey: ['booking', bookingId],
     queryFn: () => bookingAPI.getBooking(bookingId),
     select: (data) => {
-      console.log('Booking API response:', data); // Для отладки
       return data.data || data;
     },
     enabled: !!bookingId,
   });
 
-  // Отладочная информация
-  useEffect(() => {
-    if (booking) {
-      console.log('=== BOOKING DEBUG ===');
-      console.log('Full booking data:', booking);
-      console.log('Trip data:', booking.trip_details || booking.trip);
-      console.log('Route data:', booking.trip_details?.route || booking.trip?.route);
-      console.log('Price:', booking.trip_details?.price || booking.trip?.price);
-      console.log('Departure time:', booking.trip_details?.departure_time || booking.trip?.departure_time);
-      console.log('====================');
-    }
-  }, [booking]);
-
-  // Получаем правильные данные из разных возможных структур
   const tripData = booking?.trip_details || booking?.trip;
   const routeData = tripData?.route;
   const fromCity = routeData?.from_city;
@@ -116,7 +100,6 @@ function BookingSuccessPage() {
   return (
     <AppLayout>
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Успешное сообщение */}
         <div className="text-center mb-8">
           <div className="bg-gradient-to-br from-green-100 to-emerald-200 p-6 rounded-3xl mx-auto w-fit mb-6 shadow-lg">
             <CheckCircle className="w-20 h-20 text-green-600 mx-auto" />
@@ -132,9 +115,7 @@ function BookingSuccessPage() {
           </p>
         </div>
 
-        {/* Детали бронирования */}
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Информация о поездке */}
           <Card className="bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl">
             <CardContent className="p-6">
               <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
@@ -187,7 +168,6 @@ function BookingSuccessPage() {
             </CardContent>
           </Card>
 
-          {/* Информация о бронировании */}
           <Card className="bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl">
             <CardContent className="p-6">
               <h2 className="text-2xl font-bold text-slate-800 mb-6 flex items-center">
@@ -248,7 +228,6 @@ function BookingSuccessPage() {
           </Card>
         </div>
 
-        {/* Важная информация */}
         <Card className="bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl mt-8">
           <CardContent className="p-6">
             <h3 className="text-xl font-bold text-slate-800 mb-4">Важная информация</h3>
@@ -262,7 +241,6 @@ function BookingSuccessPage() {
           </CardContent>
         </Card>
 
-        {/* Действия */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
           <Button
             onClick={() => router.push('/profile')}

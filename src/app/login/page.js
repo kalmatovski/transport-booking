@@ -18,7 +18,6 @@ function LoginPage() {
   const router = useRouter();
   const { login } = useAuthStore();
 
-  // Форма входа
   const {
     register,
     handleSubmit,
@@ -32,20 +31,14 @@ function LoginPage() {
     },
   });
 
-  // Мутация входа - УПРОЩЕНО
   const loginMutation = useMutation({
     mutationFn: authAPI.login,
     onSuccess: async (response) => {
-      // Django JWT возвращает access и refresh токены + роль
       const { access, refresh, user } = response.data;
       
-      // Сохраняем токены и роль
       login(user, access, refresh);
       
-      // НЕ ДЕЛАЕМ дополнительный запрос профиля здесь!
-      // Профиль загрузится на нужной странице автоматически
       
-      // Перенаправляем на главную
       router.push('/');
     },
     onError: (error) => {

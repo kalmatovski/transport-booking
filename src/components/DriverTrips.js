@@ -10,7 +10,6 @@ import { Button } from './ui';
 export function DriverTrips() {
   const router = useRouter();
   
-  // 🚀 ОПТИМИЗАЦИЯ: Увеличиваем интервал обновления и добавляем кеширование
   const { data: trips, isLoading, error } = useQuery({
     queryKey: ['myTrips'],
     queryFn: () => ridesAPI.getMyTrips(),
@@ -21,7 +20,6 @@ export function DriverTrips() {
     refetchOnWindowFocus: false, // 🚀 Не перезагружаем при фокусе
   });
 
-  // 🚀 ОПТИМИЗАЦИЯ: Мемоизируем функции
   const formatTime = useCallback((dateString) => {
     return new Date(dateString).toLocaleString('ru-RU', {
       day: '2-digit',
@@ -44,7 +42,6 @@ export function DriverTrips() {
   }, []);
 
   const getStatusColor = useCallback((status, availableSeats) => {
-    // Если нет свободных мест - показываем как заполнен
     if (availableSeats === 0) {
       return 'bg-red-100 text-red-800';
     }
@@ -60,7 +57,6 @@ export function DriverTrips() {
   }, []);
 
   const getStatusText = useCallback((status, availableSeats) => {
-    // Если нет свободных мест - показываем "Заполнен"
     if (availableSeats === 0) {
       return 'Заполнен';
     }

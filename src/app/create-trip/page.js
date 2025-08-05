@@ -208,7 +208,7 @@ export default function CreateTripPage() {
                 )}
                 {vehicles.length === 0 && !vehiclesLoading && (
                   <p className="text-amber-600 text-sm mt-1">
-                    У вас нет автомобилей. <button type="button" className="underline" onClick={() => router.push('/vehicles')}>Добавить автомобиль</button>
+                    У вас нет автомобилей. <button type="button" className="underline" onClick={() => router.push('/profile')}>Добавить автомобиль в профиле</button>
                   </p>
                 )}
               </div>

@@ -43,17 +43,18 @@ const TripCard = memo(({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between">
           {/* Информация о поездке */}
           <div className="flex-1">
-            <div className="flex items-center space-x-6 mb-6">
+            {/* Время и статус - адаптивная сетка */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               {/* Время отправления */}
-              <div className="flex items-center space-x-3">
-                <div className="bg-gradient-to-br from-blue-100 to-indigo-200 p-2 rounded-xl">
+              <div className="flex items-center space-x-3 bg-white/30 backdrop-blur-sm rounded-xl p-3 border border-white/40">
+                <div className="bg-gradient-to-br from-blue-100 to-indigo-200 p-2 rounded-xl flex-shrink-0">
                   <Clock className="w-4 h-4 text-blue-600" />
                 </div>
-                <div>
-                  <span className="font-semibold text-slate-800 block">
+                <div className="min-w-0 flex-1">
+                  <span className="font-semibold text-slate-800 block text-sm">
                     Отправление
                   </span>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-xs text-slate-600 truncate">
                     {formatDateTime(trip.departure_time)}
                   </p>
                 </div>
@@ -61,15 +62,15 @@ const TripCard = memo(({
               
               {/* Время прибытия */}
               {trip.arrival_time && (
-                <div className="flex items-center space-x-3">
-                  <div className="bg-gradient-to-br from-blue-100 to-indigo-200 p-2 rounded-xl">
+                <div className="flex items-center space-x-3 bg-white/30 backdrop-blur-sm rounded-xl p-3 border border-white/40">
+                  <div className="bg-gradient-to-br from-blue-100 to-indigo-200 p-2 rounded-xl flex-shrink-0">
                     <MapPin className="w-4 h-4 text-blue-600" />
                   </div>
-                  <div>
-                    <span className="font-semibold text-slate-800 block">
+                  <div className="min-w-0 flex-1">
+                    <span className="font-semibold text-slate-800 block text-sm">
                       Прибытие
                     </span>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-xs text-slate-600 truncate">
                       {formatDateTime(trip.arrival_time)}
                     </p>
                   </div>
@@ -77,9 +78,11 @@ const TripCard = memo(({
               )}
               
               {/* Статус */}
-              <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${getStatusColor(trip.status)}`}>
-                {getStatusText(trip.status)}
-              </span>
+              <div className="flex items-center justify-center sm:justify-start lg:justify-center">
+                <span className={`px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(trip.status)}`}>
+                  {getStatusText(trip.status)}
+                </span>
+              </div>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6">

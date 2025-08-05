@@ -13,6 +13,7 @@ import { useAuthStore } from '../../store/authStore';
 
 // Используем те же переиспользуемые компоненты
 import { LoadingState, ErrorState, ProfileHeader, NotificationBanner } from './ProfileStates';
+import VehicleFormSection from './VehicleFormSection';
 
 function DriverProfileContent() {
   const router = useRouter();
@@ -33,19 +34,10 @@ function DriverProfileContent() {
   const [error, setError] = useState(null);
   
   const fileInputRef = useRef(null);
-  const carPhotoInputRef = useRef(null);
 
-  // Формы (две отдельные формы)
+  // Формы (только для профиля)
   const profileForm = useForm({
     resolver: zodResolver(updateProfileSchema),
-  });
-
-  const vehicleForm = useForm({
-    defaultValues: {
-      car_model: '',
-      car_number: '',
-      available_seats: 4,
-    }
   });
 
   // Загрузка данных
@@ -74,13 +66,6 @@ function DriverProfileContent() {
           setVehicleData(myVehicle);
           // ИСПРАВЛЕНИЕ: vehicle_image уже содержит полный URL
           setCarPhoto(myVehicle.vehicle_image || null);
-          vehicleForm.reset({
-            brand: myVehicle.brand || '',
-            model: myVehicle.model || '',
-            color: myVehicle.color || '',
-            seats: myVehicle.seats || 4,
-            plate_number: myVehicle.plate_number || '',
-          });
         }
       } catch (vehicleError) {
         console.log('🚨 Vehicles API error:', vehicleError);
@@ -110,18 +95,15 @@ function DriverProfileContent() {
     }
   };
 
-  // Сохранение данных автомобиля
-  const onSubmitVehicle = async (data) => {
+  // Сохранение данных автомобиля - обновлено для VehicleFormSection
+  const handleVehicleSave = async (data) => {
     try {
       setSavingVehicle(true);
       setError(null);
       
-      // Получаем все данные формы включая фото
-      const formValues = vehicleForm.getValues();
-      
       // Добавляем is_active: true при создании/обновлении
       const vehicleDataWithActiveFlag = {
-        ...formValues,
+        ...data,
         is_active: true  // 🔧 ИСПРАВЛЕНИЕ: всегда активная машина
       };
       
@@ -185,8 +167,8 @@ function DriverProfileContent() {
     }
   };
 
-  // Загрузка фото автомобиля
-  const handleCarPhotoUpload = async (e) => {
+  // Загрузка фото автомобиля - обновлено для VehicleFormSection
+  const handleVehiclePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -218,15 +200,10 @@ function DriverProfileContent() {
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
       } else {
-        // Если машины еще нет - просто показываем превью
-        // Фото будет загружено при создании машины
+        // Если машины нет - показываем предварительный просмотр
         const reader = new FileReader();
         reader.onload = (e) => setCarPhoto(e.target.result);
         reader.readAsDataURL(file);
-        
-        // Сохраняем файл для отправки при создании машины
-        vehicleForm.setValue('vehicle_image', file);
-        console.log('Photo selected for new vehicle:', file.name);
       }
       
     } catch (err) {
@@ -241,8 +218,8 @@ function DriverProfileContent() {
     loadProfile();
   }, []);
 
-  // Удаление автомобиля
-  const onDeleteVehicle = async () => {
+  // Удаление автомобиля - обновлено для VehicleFormSection
+  const handleVehicleDelete = async () => {
     if (!vehicleData) return;
     
     const confirmed = window.confirm(
@@ -261,13 +238,6 @@ function DriverProfileContent() {
       // Очищаем данные автомобиля
       setVehicleData(null);
       setCarPhoto(null);
-      vehicleForm.reset({
-        brand: '',
-        model: '',
-        color: '',
-        seats: 4,
-        plate_number: '',
-      });
       
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -460,200 +430,17 @@ function DriverProfileContent() {
               </div>
             </div>
 
-            {/* Форма автомобиля */}
-            <div className="bg-white rounded-xl border border-blue-200 shadow-lg overflow-hidden">
-              <div className="px-6 py-4 bg-gradient-to-r from-blue-400 to-cyan-500 text-white">
-                <h2 className="text-xl font-semibold flex items-center">
-                  <Car className="w-5 h-5 mr-2" />
-                  Автомобиль
-                </h2>
-                <p className="text-white/80 text-sm">Информация о вашем транспортном средстве</p>
-              </div>
-              
-              <div className="p-6">
-                {/* Фото автомобиля */}
-                <div className="flex items-center space-x-6 mb-6">
-                  <div className="relative">
-                    <div className="h-24 w-24 rounded-lg overflow-hidden bg-gradient-to-br from-blue-400 to-cyan-500 flex items-center justify-center shadow-lg">
-                      {carPhoto ? (
-                        <img src={carPhoto} alt="Автомобиль" className="w-full h-full object-cover" />
-                      ) : (
-                        <Car className="w-8 h-8 text-white" />
-                      )}
-                    </div>
-                    <button
-                      onClick={() => carPhotoInputRef.current?.click()}
-                      disabled={uploadingCarPhoto}
-                      className="absolute -bottom-1 -right-1 h-7 w-7 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-lg transition-colors disabled:opacity-50"
-                    >
-                      {uploadingCarPhoto ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Camera className="h-4 w-4" />
-                      )}
-                    </button>
-                    <input
-                      ref={carPhotoInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleCarPhotoUpload}
-                      className="hidden"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">
-                      {vehicleData?.brand && vehicleData?.model 
-                        ? `${vehicleData.brand} ${vehicleData.model}`
-                        : 'Автомобиль не добавлен'
-                      }
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      {vehicleData?.plate_number || 'Номер не указан'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Упрощенная форма автомобиля */}
-                <form onSubmit={vehicleForm.handleSubmit(onSubmitVehicle)} className="space-y-4">
-                  {/* Бренд */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Марка автомобиля *</label>
-                    <input
-                      placeholder="Toyota"
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300"
-                      {...vehicleForm.register('brand', { required: 'Укажите марку автомобиля' })}
-                    />
-                    {vehicleForm.formState.errors.brand && (
-                      <p className="text-sm text-red-600">{vehicleForm.formState.errors.brand.message}</p>
-                    )}
-                  </div>
-
-                  {/* Модель */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Модель автомобиля *</label>
-                    <input
-                      placeholder="Camry"
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300"
-                      {...vehicleForm.register('model', { required: 'Укажите модель автомобиля' })}
-                    />
-                    {vehicleForm.formState.errors.model && (
-                      <p className="text-sm text-red-600">{vehicleForm.formState.errors.model.message}</p>
-                    )}
-                  </div>
-
-                  {/* Цвет */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Цвет</label>
-                    <input
-                      placeholder="Белый"
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300"
-                      {...vehicleForm.register('color')}
-                    />
-                  </div>
-
-                  {/* Номер */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Государственный номер *</label>
-                    <input
-                      placeholder="А123БВ24"
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300"
-                      {...vehicleForm.register('plate_number', { required: 'Укажите номер автомобиля' })}
-                    />
-                    {vehicleForm.formState.errors.plate_number && (
-                      <p className="text-sm text-red-600">{vehicleForm.formState.errors.plate_number.message}</p>
-                    )}
-                  </div>
-
-                  {/* Количество мест */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Количество пассажирских мест</label>
-                    <select
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hover:border-blue-300"
-                      {...vehicleForm.register('seats')}
-                    >
-                      <option value={1}>1 место</option>
-                      <option value={2}>2 места</option>
-                      <option value={3}>3 места</option>
-                      <option value={4}>4 места</option>
-                      <option value={5}>5 мест</option>
-                      <option value={6}>6 мест</option>
-                      <option value={7}>7 мест</option>
-                      <option value={8}>8 мест</option>
-                    </select>
-                  </div>
-
-                  {/* Кнопки для автомобиля */}
-                  {vehicleData ? (
-                    // Если автомобиль существует - показываем кнопки "Сохранить изменения" и "Удалить"
-                    <div className="flex space-x-3">
-                      <button
-                        type="submit"
-                        disabled={savingVehicle || !vehicleForm.formState.isDirty}
-                        className={`flex-1 h-10 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${
-                          vehicleForm.formState.isDirty
-                            ? 'bg-gradient-to-r from-blue-400 to-cyan-500 hover:from-blue-500 hover:to-cyan-600 text-white shadow-lg'
-                            : 'bg-blue-100 text-blue-600 cursor-not-allowed'
-                        } disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
-                      >
-                        {savingVehicle ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Сохраняем...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="w-4 h-4 mr-2" />
-                            {vehicleForm.formState.isDirty ? 'Сохранить изменения' : 'Нет изменений'}
-                          </>
-                        )}
-                      </button>
-                      
-                      <button
-                        type="button"
-                        onClick={onDeleteVehicle}
-                        disabled={deletingVehicle || savingVehicle}
-                        className="h-10 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors flex items-center justify-center space-x-2"
-                      >
-                        {deletingVehicle ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            <span>Удаляем...</span>
-                          </>
-                        ) : (
-                          <>
-                            <span>🗑️</span>
-                            <span>Удалить</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  ) : (
-                    // Если автомобиля нет - показываем только кнопку "Добавить автомобиль"
-                    <button
-                      type="submit"
-                      disabled={savingVehicle || !vehicleForm.formState.isValid}
-                      className={`w-full h-10 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${
-                        vehicleForm.formState.isValid 
-                          ? 'bg-gradient-to-r from-blue-400 to-cyan-500 hover:from-blue-500 hover:to-cyan-600 text-white shadow-lg' 
-                          : 'bg-blue-100 text-blue-600 cursor-not-allowed'
-                      } disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2`}
-                    >
-                      {savingVehicle ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Добавляем автомобиль...
-                        </>
-                      ) : (
-                        <>
-                          <Car className="w-4 h-4 mr-2" />
-                          Добавить автомобиль
-                        </>
-                      )}
-                    </button> 
-                  )}
-                </form>
-              </div>
-            </div>
+            {/* Улучшенная форма автомобиля */}
+            <VehicleFormSection
+              vehicleData={vehicleData}
+              onSave={handleVehicleSave}
+              onDelete={handleVehicleDelete}
+              onPhotoUpload={handleVehiclePhotoUpload}
+              saving={savingVehicle}
+              deleting={deletingVehicle}
+              uploadingPhoto={uploadingCarPhoto}
+              carPhoto={carPhoto}
+            />
           </div>
 
           {/* Боковая панель (упрощена) */}

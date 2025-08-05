@@ -8,7 +8,6 @@ export function TripsList({
   trips = [], 
   isLoading, 
   error, 
-  passengers,
   formatDateTime,
   getStatusColor,
   getStatusText,
@@ -72,7 +71,6 @@ export function TripsList({
               key={trip.id}
               trip={trip}
               index={index}
-              passengers={passengers}
               formatDateTime={formatDateTime}
               getStatusColor={getStatusColor}
               getStatusText={getStatusText}

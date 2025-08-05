@@ -24,8 +24,6 @@ export default function HomePage() {
   const { user, isAuthenticated } = useAuthStore();
   const router = useRouter();
   const [selectedRoute, setSelectedRoute] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
-  const [passengers, setPassengers] = useState(1);
 
   // 🚀 ОПТИМИЗАЦИЯ: Мемоизируем роль пользователя (ВАЖНО: определяем ДО использования в queries)
   const isDriver = useMemo(() => user?.role === 'driver', [user?.role]);
@@ -37,7 +35,7 @@ export default function HomePage() {
     isLoading: tripsLoading,
     error: tripsError,
     refetch: refetchTrips
-  } = useTrips(selectedRoute, selectedDate, isAuthenticated && isPassenger);
+  } = useTrips(selectedRoute, null, isAuthenticated && isPassenger);
 
   // 🚀 ОПТИМИЗАЦИЯ: Мемоизируем функции
   const handleSearch = useCallback(() => {
@@ -49,8 +47,8 @@ export default function HomePage() {
       router.push('/login');
       return;
     }
-    router.push(`/booking/${trip.id}?passengers=${passengers}`);
-  }, [isAuthenticated, router, passengers]);
+    router.push(`/booking/${trip.id}`);
+  }, [isAuthenticated, router]);
 
   // 🚀 ОПТИМИЗАЦИЯ: Мемоизируем функции форматирования
   const formatTime = useCallback((dateTimeString) => {
@@ -138,10 +136,6 @@ export default function HomePage() {
                 <SearchForm
                   selectedRoute={selectedRoute}
                   setSelectedRoute={setSelectedRoute}
-                  selectedDate={selectedDate}
-                  setSelectedDate={setSelectedDate}
-                  passengers={passengers}
-                  setPassengers={setPassengers}
                   onSearch={handleSearch}
                   isAuthenticated={isAuthenticated}
                 />
@@ -151,7 +145,6 @@ export default function HomePage() {
                   trips={availableTrips}
                   isLoading={tripsLoading}
                   error={tripsError}
-                  passengers={passengers}
                   formatDateTime={formatDateTime}
                   getStatusColor={getStatusColor}
                   getStatusText={getStatusText}

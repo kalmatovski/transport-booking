@@ -236,8 +236,8 @@ export function DriverTrips() {
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-3">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                          <span className={`px-2 py-1 rounded text-xs font-medium whitespace-nowrap ${
                             booking.status === 'confirmed' ? 'bg-green-100 text-green-800' : 
                             booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                             'bg-gray-100 text-gray-800'
@@ -247,10 +247,10 @@ export function DriverTrips() {
                           </span>
                           <a 
                             href={`tel:${booking.passenger.phone}`}
-                            className="flex items-center space-x-1 text-blue-600 hover:text-blue-800"
+                            className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 min-w-0 flex-shrink-0"
                           >
-                            <Phone className="w-4 h-4" />
-                            <span className="text-sm">{booking.passenger.phone}</span>
+                            <Phone className="w-4 h-4 flex-shrink-0" />
+                            <span className="text-sm truncate">{booking.passenger.phone}</span>
                           </a>
                         </div>
                       </div>

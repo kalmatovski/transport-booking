@@ -11,7 +11,6 @@ import { DriverInfo } from './DriverInfo';
 const TripCard = memo(({ 
   trip, 
   index, 
-  passengers, 
   formatDateTime, 
   getStatusColor, 
   getStatusText, 
@@ -150,16 +149,16 @@ const TripCard = memo(({
             {/* Кнопка бронирования */}
             <Button
               onClick={handleBookingClick}
-              disabled={trip.status !== 'available' || trip.available_seats < passengers}
+              disabled={trip.status !== 'available' || trip.available_seats < 1}
               className={`w-full shadow-lg hover:shadow-xl transition-all duration-200 ${
-                trip.status === 'available' && trip.available_seats >= passengers
+                trip.status === 'available' && trip.available_seats >= 1
                   ? 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
               {trip.status !== 'available' 
                 ? 'Недоступно'
-                : trip.available_seats < passengers
+                : trip.available_seats < 1
                 ? 'Мало мест'
                 : 'Забронировать'
               }

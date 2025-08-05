@@ -1,16 +1,12 @@
 'use client';
 
-import { MapPin, Calendar, Users, Search } from 'lucide-react';
+import { MapPin, Search } from 'lucide-react';
 import { Button } from './ui';
 import { useRoutes } from '../hooks/useRoutes';
 
 export function SearchForm({ 
   selectedRoute, 
   setSelectedRoute, 
-  selectedDate, 
-  setSelectedDate, 
-  passengers, 
-  setPassengers, 
   onSearch,
   isAuthenticated
 }) {
@@ -27,7 +23,7 @@ export function SearchForm({
         </h1>
       </div>
   
-      <div className="grid md:grid-cols-4 gap-4 mb-6">
+      <div className="grid md:grid-cols-2 gap-4 mb-6">
         {/* Выбор маршрута */}
         <div>
           <label className="text-sm font-semibold text-slate-700 mb-3 flex items-center">
@@ -46,38 +42,6 @@ export function SearchForm({
               <option key={route.id} value={route.id}>
                 {route.from_city} → {route.to_city}
               </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Выбор даты */}
-        <div>
-          <label className="text-sm font-semibold text-slate-700 mb-3 flex items-center">
-            <Calendar className="w-4 h-4 mr-2 text-blue-600" />
-            Дата
-          </label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            min={new Date().toISOString().split('T')[0]}
-            className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-slate-700 shadow-sm transition-all duration-200"
-          />
-        </div>
-
-        {/* Выбор количества пассажиров */}
-        <div>
-          <label className="text-sm font-semibold text-slate-700 mb-3 flex items-center">
-            <Users className="w-4 h-4 mr-2 text-blue-600" />
-            Пассажиры
-          </label>
-          <select
-            value={passengers}
-            onChange={(e) => setPassengers(Number(e.target.value))}
-            className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-white/50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 text-slate-700 shadow-sm transition-all duration-200"
-          >
-            {[1, 2, 3, 4, 5, 6, 7, 8].map(num => (
-              <option key={num} value={num}>{num}</option>
             ))}
           </select>
         </div>

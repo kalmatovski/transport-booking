@@ -5,11 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery } from '@tanstack/react-query';
-import { Camera, Save, Loader2, Calendar, MapPin, Clock, Users, Car, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Camera, Save, Loader2, Calendar, MapPin, Clock, Users, Car, CheckCircle, XCircle, AlertCircle, Star } from 'lucide-react';
 
 import { updateProfileSchema } from '../../lib/validationSchemas';
 import { authAPI, bookingAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
+import RatingModal from '../RatingModal';
 
 import { LoadingState, ErrorState, ProfileHeader, NotificationBanner } from './ProfileStates';
 
@@ -23,6 +24,7 @@ function PassengerProfileContent() {
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [selectedBookingForRating, setSelectedBookingForRating] = useState(null);
   const [error, setError] = useState(null);
   
   const fileInputRef = useRef(null);
@@ -471,6 +473,15 @@ function PassengerProfileContent() {
                                 Отменить
                               </button>
                             )}
+                            {booking.status === 'completed' && (
+                              <button
+                                onClick={() => setSelectedBookingForRating(booking)}
+                                className="px-3 py-1 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 transition-colors flex items-center space-x-1"
+                              >
+                                <Star className="w-3 h-3" />
+                                <span>Оценить</span>
+                              </button>
+                            )}
                             {booking.trip_details && (
                               <button
                                 onClick={() => router.push(`/booking/${booking.trip_details.id}?passengers=${booking.seats_reserved}`)}
@@ -521,6 +532,20 @@ function PassengerProfileContent() {
           </div>
         </div>
       </div>
+
+      {/* Модальное окно для рейтинга */}
+      {selectedBookingForRating && (
+        <>
+          {console.log('Selected booking for rating:', selectedBookingForRating)}
+          <RatingModal
+            tripId={selectedBookingForRating.trip}
+            driverId={selectedBookingForRating.trip_details?.driver_id || selectedBookingForRating.trip_details?.driver}
+            trip={selectedBookingForRating.trip_details}
+            driver={selectedBookingForRating.trip_details?.driver}
+            onClose={() => setSelectedBookingForRating(null)}
+          />
+        </>
+      )}
     </>
   );
 }

@@ -12,10 +12,11 @@ import {
   Phone,
   MessageCircle,
   Home,
-  User
+  User,
+  Star
 } from 'lucide-react';
 
-import { bookingAPI } from '../../../lib/api';
+import { bookingAPI, ratingsAPI } from '../../../lib/api';
 import { Button, Card, CardContent, LoadingSpinner } from '../../../components/ui';
 import { withAuth } from '../../../components/withAuth';
 import { AppLayout } from '../../../components/layout/AppLayout';
@@ -46,6 +47,27 @@ function BookingSuccessPage() {
   const arrivalTime = tripData?.arrival_time;
   const price = tripData?.price;
   const seatsReserved = booking?.seats_reserved;
+
+    // Получаем данные водителя
+    const {
+      data: driver,
+      isLoading: driverLoading,
+      error: driverError
+    } = useQuery({
+      queryKey: ['driver', tripData?.driver],
+      queryFn: () => tripData?.driver ? bookingAPI.getUser(tripData.driver).then(res => res.data) : null,
+      enabled: !!tripData?.driver,
+    });
+
+    // Получаем рейтинг водителя
+    const {
+      data: driverRating,
+      isLoading: ratingLoading
+    } = useQuery({
+      queryKey: ['driverRating', tripData?.driver],
+      queryFn: () => tripData?.driver ? ratingsAPI.getDriverRatings(tripData.driver) : null,
+      enabled: !!tripData?.driver,
+    });
 
   const formatDateTime = (dateTimeString) => {
     if (!dateTimeString) return '';
@@ -208,20 +230,53 @@ function BookingSuccessPage() {
 
                 <div className="pt-4">
                   <h3 className="font-semibold text-slate-800 mb-3">Водитель</h3>
-                  <p className="text-slate-700 mb-3">
-                    Водитель #{tripData?.driver || 'Неизвестно'}
-                  </p>
-                  
-                  <div className="flex space-x-3">
-                    <Button variant="outline" className="flex-1">
-                      <Phone className="w-4 h-4 mr-2" />
-                      Позвонить
-                    </Button>
-                    <Button variant="outline" className="flex-1">
-                      <MessageCircle className="w-4 h-4 mr-2" />
-                      Написать
-                    </Button>
-                  </div>
+                    {driverLoading ? (
+                      <p className="text-slate-700 mb-3">Загрузка данных водителя...</p>
+                    ) : driverError || !driver ? (
+                      <p className="text-slate-700 mb-3">Водитель не найден</p>
+                    ) : (
+                      <>
+                        <div className="mb-3">
+                          <span className="font-semibold text-slate-800">{driver.first_name} {driver.last_name}</span>
+                          {driver.role === 'driver' && driver.car_model && (
+                            <span className="ml-2 text-slate-500">({driver.car_model})</span>
+                          )}
+                          {driverRating?.average_score > 0 && (
+                            <div className="flex items-center mt-1">
+                              <Star className="w-4 h-4 text-yellow-500 mr-1" />
+                              <span className="text-sm text-slate-600">{driverRating.average_score} / 5.0</span>
+                              <span className="text-xs text-slate-400 ml-2">({driverRating.ratings?.length || 0} отзывов)</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="mb-3">
+                          <span className="text-slate-700">Телефон: </span>
+                          <span className="font-mono text-blue-700">{driver.phone || '—'}</span>
+                        </div>
+                        {(driver.telegram || driver.whatsapp || driver.vk) && (
+                          <div className="mb-3">
+                            <span className="text-slate-700">Соцсети: </span>
+                            {driver.telegram && <span className="mr-2">Telegram: <span className="font-mono">{driver.telegram}</span></span>}
+                            {driver.whatsapp && <span className="mr-2">WhatsApp: <span className="font-mono">{driver.whatsapp}</span></span>}
+                            {driver.vk && <span className="mr-2">VK: <span className="font-mono">{driver.vk}</span></span>}
+                          </div>
+                        )}
+                        <div className="flex space-x-3">
+                          {driver.phone && (
+                            <Button variant="outline" className="flex-1" as="a" href={`tel:${driver.phone}`}>
+                              <Phone className="w-4 h-4 mr-2" />
+                              Позвонить
+                            </Button>
+                          )}
+                          {driver.telegram && (
+                            <Button variant="outline" className="flex-1" as="a" href={`https://t.me/${driver.telegram.replace('@','')}`} target="_blank">
+                              <MessageCircle className="w-4 h-4 mr-2" />
+                              Telegram
+                            </Button>
+                          )}
+                        </div>
+                      </>
+                    )}
                 </div>
               </div>
             </CardContent>

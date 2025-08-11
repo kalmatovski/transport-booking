@@ -366,49 +366,6 @@ function BookingPage() {
           <div className="xl:col-span-2 lg:col-span-1 order-1 lg:order-2">
             <Card className="bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl lg:sticky lg:top-24">
               <CardContent className="p-6">
-                <div className="text-center mb-6">
-                  <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 rounded-xl mx-auto w-fit mb-4">
-                    <CheckCircle className="w-6 h-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-800">Информация о поездке</h3>
-                </div>
-
-                {/* Информация о существующей брони */}
-                {existingBooking && existingBooking.status !== 'cancelled' ? (
-                  <Alert className="mb-6 bg-green-50/70 border-green-300/50">
-                    <div className="font-medium text-green-800">✓ Вы забронировали эту поездку</div>
-                    <div className="text-sm text-green-700 mt-1">
-                      Забронировано мест: {existingBooking.seats_reserved} | 
-                      Статус: {existingBooking.status === 'pending' ? 'Ожидает подтверждения' : 
-                               existingBooking.status === 'confirmed' ? 'Подтверждено' : existingBooking.status}
-                    </div>
-                    <div className="text-sm text-green-600 mt-2">
-                      Дата бронирования: {new Date(existingBooking.created_at).toLocaleDateString('ru-RU')}
-                    </div>
-                  </Alert>
-                ) : (
-                  <Alert className="mb-6 bg-blue-50/70 border-blue-300/50">
-                    <div className="font-medium text-blue-800">Информация о поездке</div>
-                    <div className="text-sm text-blue-700 mt-1">
-                      Детали поездки и стоимость
-                    </div>
-                  </Alert>
-                )}
-
-                {/* Информация о пассажире */}
-                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-xl border border-blue-200/50">
-                  <h4 className="font-semibold text-slate-800 mb-2 flex items-center">
-                    <Users className="w-4 h-4 mr-2 text-blue-600" />
-                    Пассажир
-                  </h4>
-                  <p className="text-slate-700 font-medium">
-                    {user?.first_name || user?.username || 'Пользователь'}
-                  </p>
-                  {user?.phone && (
-                    <p className="text-slate-600 text-sm mt-1">{user.phone}</p>
-                  )}
-                </div>
-
                 {/* Детали бронирования */}
                 <div className="mb-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl border border-blue-200/50">
                   <h4 className="font-semibold text-slate-800 mb-3 flex items-center">

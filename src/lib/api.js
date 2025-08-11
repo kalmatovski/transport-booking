@@ -334,4 +334,19 @@ export const routesAPI = {
   },
 };
 
+export const ratingsAPI = {
+  createRating: (ratingData) => {
+    return api.post('/ratings/', {
+      trip: ratingData.trip,
+      driver: ratingData.driver,
+      score: ratingData.score,
+      comment: ratingData.comment || ''
+    });
+  },
+
+  getDriverRatings: (driverId) => {
+    return api.get(`/ratings/drivers/${driverId}/`);
+  },
+};
+
 export default api; 

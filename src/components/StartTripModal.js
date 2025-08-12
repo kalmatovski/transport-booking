@@ -31,7 +31,7 @@ export function StartTripModal({
           <h2 className="text-xl font-bold text-gray-900 mb-2">Начать поездку?</h2>
           <p className="text-gray-600">
             Вы уверены, что хотите начать поездку?<br/>
-            Статус изменится на "В пути"
+            Статус изменится на &ldquo;В пути&rdquo;
           </p>
         </div>
 

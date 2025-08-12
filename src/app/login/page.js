@@ -13,6 +13,7 @@ import { authAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import { Button, Input, Card, CardContent, Alert } from '../../components/ui';
 import { withGuest } from '../../components/withAuth';
+import { notify } from '../../lib/notify';
 
 function LoginPage() {
   const router = useRouter();
@@ -38,11 +39,15 @@ function LoginPage() {
       
       login(user, access, refresh);
       
-      
+      notify.success('Добро пожаловать! Вход выполнен успешно');
       router.push('/');
     },
     onError: (error) => {
       console.error('Login error:', error);
+      const errorMessage = error?.response?.data?.detail || 
+                          error?.response?.data?.non_field_errors?.[0] || 
+                          'Неверные данные для входа';
+      notify.error(errorMessage);
     }
   });
 

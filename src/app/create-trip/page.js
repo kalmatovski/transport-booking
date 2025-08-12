@@ -18,6 +18,7 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { ridesAPI, routesAPI, vehiclesAPI } from '../../lib/api';
 import { Button, Card, CardContent, Alert, LoadingSpinner } from '../../components/ui';
+import { notify } from '../../lib/notify';
 
 export default function CreateTripPage() {
   const { user, isAuthenticated } = useAuthStore();
@@ -54,10 +55,15 @@ export default function CreateTripPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['myTrips', user?.id] });
       queryClient.invalidateQueries({ queryKey: ['available-trips'] });
+      notify.success('Поездка успешно создана! Пассажиры могут забронировать места');
       router.push('/');
     },
     onError: (error) => {
       console.error('Ошибка создания поездки:', error);
+      const errorMessage = error?.response?.data?.detail || 
+                          error?.response?.data?.non_field_errors?.[0] ||
+                          'Ошибка при создании поездки';
+      notify.error(errorMessage);
       if (error.response?.data) {
         setErrors(error.response.data);
       }

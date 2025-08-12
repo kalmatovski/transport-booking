@@ -1,11 +1,13 @@
 import { Inter } from 'next/font/google';
 import './globals.css';
 import QueryProvider from '../components/providers/QueryProvider';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
 export const metadata = {
-  title: 'TransportBook - Бронирование поездок',
+  title: 'Бибика - Бронирование поездок',
   description: 'Удобное бронирование поездок между Красноярском и Абаканом',
   icons: {
     icon: [
@@ -27,6 +29,18 @@ export default function RootLayout({ children }) {
           <div className="min-h-screen bg-gray-50">
             {children}
           </div>
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
         </QueryProvider>
       </body>
     </html>

@@ -2,18 +2,32 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ridesAPI } from '../lib/api';
 import { Clock, Users, MapPin, Phone, DollarSign, Calendar, Plus, CheckCircle, Play, RefreshCw } from 'lucide-react';
 import { Button } from './ui';
 import { useAuthStore } from '../store/authStore';
 import { useIsHydrated } from '../hooks/useIsHydrated';
+import { StartTripModal } from './StartTripModal';
+import { FinishTripModal } from './FinishTripModal';
+import { notify } from '../lib/notify';
 
 export function DriverTrips() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const isHydrated = useIsHydrated();
+  
+  // Состояние для модалок
+  const [startTripModal, setStartTripModal] = useState({
+    isOpen: false,
+    trip: null
+  });
+  
+  const [finishTripModal, setFinishTripModal] = useState({
+    isOpen: false,
+    trip: null
+  });
   
   const { data: trips, isLoading, error, refetch } = useQuery({
     queryKey: ['myTrips', user?.id],
@@ -30,12 +44,20 @@ export function DriverTrips() {
   // Мутация для обновления статуса поездки
   const updateTripStatusMutation = useMutation({
     mutationFn: ({ tripId, status }) => ridesAPI.updateTripStatus(tripId, status),
-    onSuccess: () => {
+    onSuccess: (response, { status }) => {
       // Просто перезагружаем данные вместо инвалидации кэша
       refetch();
+      
+      // Показываем уведомление в зависимости от статуса
+      if (status === 'in_road') {
+        notify.success('Поездка началась! Пассажиры получили уведомление');
+      } else if (status === 'finished') {
+        notify.success('Поездка завершена! Пассажиры могут оставить отзывы');
+      }
     },
     onError: (error) => {
-      alert(`Ошибка при обновлении статуса: ${error.response?.data?.detail || error.message}`);
+      const errorMessage = error.response?.data?.detail || error.message || 'Ошибка при обновлении статуса';
+      notify.error(errorMessage);
     }
   });
 
@@ -50,15 +72,33 @@ export function DriverTrips() {
 
   // Функции для изменения статуса поездки
   const handleStartTrip = (tripId) => {
-    if (confirm('Начать поездку?')) {
-      updateTripStatusMutation.mutate({ tripId, status: 'in_road' });
+    const trip = trips?.find(t => t.id === tripId);
+    if (trip) {
+      setStartTripModal({
+        isOpen: true,
+        trip: trip
+      });
     }
   };
 
+  const handleConfirmStartTrip = (tripId) => {
+    updateTripStatusMutation.mutate({ tripId, status: 'in_road' });
+    setStartTripModal({ isOpen: false, trip: null });
+  };
+
   const handleFinishTrip = (tripId) => {
-    if (confirm('Завершить поездку? После завершения пассажиры смогут оставить отзывы.')) {
-      updateTripStatusMutation.mutate({ tripId, status: 'finished' });
+    const trip = trips?.find(t => t.id === tripId);
+    if (trip) {
+      setFinishTripModal({
+        isOpen: true,
+        trip: trip
+      });
     }
+  };
+
+  const handleConfirmFinishTrip = (tripId) => {
+    updateTripStatusMutation.mutate({ tripId, status: 'finished' });
+    setFinishTripModal({ isOpen: false, trip: null });
   };
 
   const getTimeUntilDeparture = useCallback((departureTime) => {
@@ -336,6 +376,24 @@ export function DriverTrips() {
           </div>
         );
       })}
+      
+      {/* Модалка начала поездки */}
+      <StartTripModal
+        isOpen={startTripModal.isOpen}
+        onClose={() => setStartTripModal({ isOpen: false, trip: null })}
+        onConfirm={handleConfirmStartTrip}
+        trip={startTripModal.trip}
+        isLoading={updateTripStatusMutation.isLoading}
+      />
+      
+      {/* Модалка завершения поездки */}
+      <FinishTripModal
+        isOpen={finishTripModal.isOpen}
+        onClose={() => setFinishTripModal({ isOpen: false, trip: null })}
+        onConfirm={handleConfirmFinishTrip}
+        trip={finishTripModal.trip}
+        isLoading={updateTripStatusMutation.isLoading}
+      />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { DriverRating } from '../DriverRating';
 import { updateProfileSchema } from '../../lib/validationSchemas';
 import { authAPI, vehiclesAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
+import { notify } from '../../lib/notify';
 
 import { LoadingState, ErrorState, ProfileHeader, NotificationBanner } from './ProfileStates';
 import VehicleFormSection from './VehicleFormSection';
@@ -77,9 +78,12 @@ function DriverProfileContent() {
       setProfileData(response.data);
       updateUser(response.data);
       setSaveSuccess(true);
+      notify.success('Профиль успешно обновлен');
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'Ошибка сохранения профиля');
+      const errorMessage = err.response?.data?.detail || err.message || 'Ошибка сохранения профиля';
+      setError(errorMessage);
+      notify.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -114,9 +118,13 @@ function DriverProfileContent() {
       await loadProfile();
       
       setSaveSuccess(true);
+      const action = vehicleData ? 'обновлен' : 'добавлен';
+      notify.success(`Автомобиль успешно ${action}`);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'Ошибка сохранения автомобиля');
+      const errorMessage = err.response?.data?.detail || err.message || 'Ошибка сохранения автомобиля';
+      setError(errorMessage);
+      notify.error(errorMessage);
     } finally {
       setSavingVehicle(false);
     }
@@ -146,9 +154,12 @@ function DriverProfileContent() {
       await loadProfile();
       
       setSaveSuccess(true);
+      notify.success('Фото профиля успешно обновлено');
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      setError('Ошибка загрузки фото профиля');
+      const errorMessage = err.response?.data?.detail || err.message || 'Ошибка загрузки фото профиля';
+      setError(errorMessage);
+      notify.error(errorMessage);
       if (profileData?.avatar) {
         setProfilePhoto(`http://127.0.0.1:8000${profileData.avatar}`);
       } else {
@@ -228,10 +239,13 @@ function DriverProfileContent() {
       setCarPhoto(null);
       
       setSaveSuccess(true);
+      notify.success('Автомобиль успешно удален');
       setTimeout(() => setSaveSuccess(false), 3000);
       
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'Ошибка при удалении автомобиля');
+      const errorMessage = err.response?.data?.detail || err.message || 'Ошибка при удалении автомобиля';
+      setError(errorMessage);
+      notify.error(errorMessage);
     } finally {
       setDeletingVehicle(false);
     }

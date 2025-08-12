@@ -22,6 +22,7 @@ import { Button, Card, CardContent, Alert, LoadingSpinner } from '../../../compo
 import { withAuth } from '../../../components/withAuth';
 import { DriverInfo } from '../../../components/DriverInfo';
 import { DriverRating } from '../../../components/DriverRating';
+import { notify } from '../../../lib/notify';
 
 function BookingPage() {
   const router = useRouter();
@@ -69,6 +70,7 @@ function BookingPage() {
       queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
       queryClient.invalidateQueries({ queryKey: ['my-booking-for-trip', tripId] });
       
+      notify.success(`Поездка забронирована! Количество мест: ${seatsToBook}`);
       // Переходим на страницу успеха или профиль
       router.push(`/booking/success?bookingId=${response.data.id}`);
     },
@@ -83,9 +85,14 @@ function BookingPage() {
           (error.response?.data?.detail?.includes('unique') || 
            error.response?.data?.message?.includes('already exists'))) {
         setShowExistingBookingAlert(true);
+        notify.warning('У вас уже есть бронирование на эту поездку');
       } else {
         // Показываем общую ошибку
-        alert(`Ошибка при создании бронирования: ${error.response?.data?.detail || error.response?.data?.message || error.message}`);
+        const errorMessage = error.response?.data?.detail || 
+                            error.response?.data?.message || 
+                            error.message || 
+                            'Ошибка при создании бронирования';
+        notify.error(errorMessage);
       }
     }
   });
@@ -99,11 +106,16 @@ function BookingPage() {
       queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
       queryClient.invalidateQueries({ queryKey: ['my-booking-for-trip', tripId] });
       
+      notify.success('Бронирование успешно обновлено!');
       // Переходим на страницу успеха
       router.push(`/booking/success?bookingId=${response.data.id}`);
     },
     onError: (error) => {
       console.error('Update booking error:', error);
+      const errorMessage = error.response?.data?.detail || 
+                          error.response?.data?.message || 
+                          'Ошибка при обновлении бронирования';
+      notify.error(errorMessage);
     }
   });
 

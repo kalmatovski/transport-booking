@@ -14,6 +14,7 @@ import {
 
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '../ui';
+import { notify } from '../../lib/notify';
 
 export function Header() {
   const { user, isAuthenticated, logout } = useAuthStore();
@@ -22,6 +23,7 @@ export function Header() {
 
   const handleLogout = useCallback(() => {
     logout();
+    notify.success('Вы успешно вышли из системы');
     router.push('/');
   }, [logout, router]);
 

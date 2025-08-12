@@ -12,6 +12,7 @@ import { authAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import { Button, Input, Card, CardContent, Alert } from '../../components/ui';
 import { withGuest } from '../../components/withAuth';
+import { notify } from '../../lib/notify';
 function RegisterPage() {
   const router = useRouter();
   const { login } = useAuthStore();
@@ -39,6 +40,8 @@ function RegisterPage() {
     mutationFn: authAPI.register,
     onSuccess: async (response, variables) => {
       try {
+        notify.success('Регистрация прошла успешно! Выполняем вход...');
+        
         const loginResponse = await authAPI.login({
           username: variables.username,
           password: variables.password
@@ -48,15 +51,23 @@ function RegisterPage() {
         
         login(user, access, refresh);
         
+        notify.success('Добро пожаловать в Б и б и к а!');
         router.push('/');
         
       } catch (loginError) {
         console.error('Auto-login failed:', loginError);
+        notify.warning('Регистрация успешна! Теперь войдите в систему');
         router.push('/login?message=registration_success');
       }
     },
     onError: (error) => {
       console.error('Registration error:', error);
+      const errorMessage = error?.response?.data?.username?.[0] || 
+                          error?.response?.data?.phone?.[0] ||
+                          error?.response?.data?.email?.[0] ||
+                          error?.response?.data?.detail ||
+                          'Ошибка при регистрации';
+      notify.error(errorMessage);
     }
   });
 

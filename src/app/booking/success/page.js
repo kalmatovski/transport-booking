@@ -16,15 +16,18 @@ import {
   Star
 } from 'lucide-react';
 
-import { bookingAPI, ratingsAPI } from '../../../lib/api';
+import { bookingAPI, ratingsAPI, authAPI } from '../../../lib/api';
 import { Button, Card, CardContent, LoadingSpinner } from '../../../components/ui';
 import { withAuth } from '../../../components/withAuth';
 import { AppLayout } from '../../../components/layout/AppLayout';
+import { useIsHydrated } from '../../../hooks/useIsHydrated';
+import { DriverRating } from '../../../components/DriverRating';
 
 function BookingSuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const bookingId = searchParams.get('bookingId');
+  const isHydrated = useIsHydrated();
 
   const { 
     data: booking, 
@@ -36,7 +39,11 @@ function BookingSuccessPage() {
     select: (data) => {
       return data.data || data;
     },
-    enabled: !!bookingId,
+    enabled: !!bookingId && isHydrated, // Ждем гидратации
+    // Убираем кэширование для надежности
+    staleTime: 0,
+    cacheTime: 0,
+    refetchOnMount: true,
   });
 
   const tripData = booking?.trip_details || booking?.trip;
@@ -55,8 +62,14 @@ function BookingSuccessPage() {
       error: driverError
     } = useQuery({
       queryKey: ['driver', tripData?.driver],
-      queryFn: () => tripData?.driver ? bookingAPI.getUser(tripData.driver).then(res => res.data) : null,
+      queryFn: async () => {
+        if (!tripData?.driver) return null;
+        const response = await authAPI.getUser(tripData.driver);
+        return response.data;
+      },
       enabled: !!tripData?.driver,
+      staleTime: 0,
+      cacheTime: 0,
     });
 
     // Получаем рейтинг водителя
@@ -85,7 +98,7 @@ function BookingSuccessPage() {
     }
   };
 
-  if (bookingLoading) {
+  if (!isHydrated || bookingLoading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center h-96">
@@ -241,13 +254,11 @@ function BookingSuccessPage() {
                           {driver.role === 'driver' && driver.car_model && (
                             <span className="ml-2 text-slate-500">({driver.car_model})</span>
                           )}
-                          {driverRating?.average_score > 0 && (
-                            <div className="flex items-center mt-1">
-                              <Star className="w-4 h-4 text-yellow-500 mr-1" />
-                              <span className="text-sm text-slate-600">{driverRating.average_score} / 5.0</span>
-                              <span className="text-xs text-slate-400 ml-2">({driverRating.ratings?.length || 0} отзывов)</span>
-                            </div>
-                          )}
+                          <DriverRating 
+                            driverId={driver.id} 
+                            showLabel={true} 
+                            size="sm" 
+                          />
                         </div>
                         <div className="mb-3">
                           <span className="text-slate-700">Телефон: </span>
@@ -263,16 +274,24 @@ function BookingSuccessPage() {
                         )}
                         <div className="flex space-x-3">
                           {driver.phone && (
-                            <Button variant="outline" className="flex-1" as="a" href={`tel:${driver.phone}`}>
+                            <a 
+                              href={`tel:${driver.phone}`}
+                              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                            >
                               <Phone className="w-4 h-4 mr-2" />
                               Позвонить
-                            </Button>
+                            </a>
                           )}
                           {driver.telegram && (
-                            <Button variant="outline" className="flex-1" as="a" href={`https://t.me/${driver.telegram.replace('@','')}`} target="_blank">
+                            <a
+                              href={`https://t.me/${driver.telegram.replace('@','')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                            >
                               <MessageCircle className="w-4 h-4 mr-2" />
                               Telegram
-                            </Button>
+                            </a>
                           )}
                         </div>
                       </>

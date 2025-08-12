@@ -1,23 +1,42 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import { ridesAPI } from '../lib/api';
-import { Clock, Users, MapPin, Phone, DollarSign, Calendar, Plus } from 'lucide-react';
+import { Clock, Users, MapPin, Phone, DollarSign, Calendar, Plus, CheckCircle, Play, RefreshCw } from 'lucide-react';
 import { Button } from './ui';
+import { useAuthStore } from '../store/authStore';
+import { useIsHydrated } from '../hooks/useIsHydrated';
 
 export function DriverTrips() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const isHydrated = useIsHydrated();
   
-  const { data: trips, isLoading, error } = useQuery({
-    queryKey: ['myTrips'],
+  const { data: trips, isLoading, error, refetch } = useQuery({
+    queryKey: ['myTrips', user?.id],
     queryFn: () => ridesAPI.getMyTrips(),
     select: (data) => data.data,
-    refetchInterval: 2 * 60 * 1000, // 🚀 Обновляем каждые 2 минуты вместо 30 секунд
-    staleTime: 60 * 1000, // 🚀 Кешируем на 1 минуту
-    cacheTime: 5 * 60 * 1000, // 🚀 Храним в кеше 5 минут
-    refetchOnWindowFocus: false, // 🚀 Не перезагружаем при фокусе
+    enabled: !!user?.id, // Простая проверка только на наличие userId
+    // Убираем агрессивное кэширование
+    staleTime: 0, // Данные всегда считаются устаревшими
+    cacheTime: 0, // Не храним в кеше
+    refetchOnMount: true, // Всегда обновляем при монтировании
+    refetchOnWindowFocus: false, // Не обновляем при фокусе
+  });
+
+  // Мутация для обновления статуса поездки
+  const updateTripStatusMutation = useMutation({
+    mutationFn: ({ tripId, status }) => ridesAPI.updateTripStatus(tripId, status),
+    onSuccess: () => {
+      // Просто перезагружаем данные вместо инвалидации кэша
+      refetch();
+    },
+    onError: (error) => {
+      alert(`Ошибка при обновлении статуса: ${error.response?.data?.detail || error.message}`);
+    }
   });
 
   const formatTime = useCallback((dateString) => {
@@ -28,6 +47,19 @@ export function DriverTrips() {
       minute: '2-digit'
     });
   }, []);
+
+  // Функции для изменения статуса поездки
+  const handleStartTrip = (tripId) => {
+    if (confirm('Начать поездку?')) {
+      updateTripStatusMutation.mutate({ tripId, status: 'in_road' });
+    }
+  };
+
+  const handleFinishTrip = (tripId) => {
+    if (confirm('Завершить поездку? После завершения пассажиры смогут оставить отзывы.')) {
+      updateTripStatusMutation.mutate({ tripId, status: 'finished' });
+    }
+  };
 
   const getTimeUntilDeparture = useCallback((departureTime) => {
     const now = new Date();
@@ -48,8 +80,8 @@ export function DriverTrips() {
     
     switch (status) {
       case 'available': return 'bg-green-100 text-green-800';
-      case 'in_progress': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-gray-100 text-gray-800';
+      case 'in_road': return 'bg-blue-100 text-blue-800';
+      case 'finished': return 'bg-gray-100 text-gray-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       case 'full': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
@@ -63,15 +95,16 @@ export function DriverTrips() {
     
     switch (status) {
       case 'available': return 'Доступна';
-      case 'in_progress': return 'В пути';
-      case 'completed': return 'Завершена';
+      case 'in_road': return 'В пути';
+      case 'finished': return 'Завершена';
       case 'cancelled': return 'Отменена';
       case 'full': return 'Заполнен';
       default: return status;
     }
   }, []);
 
-  if (isLoading) {
+  // Показываем загрузку если не гидратировано или идет загрузка данных
+  if (!isHydrated || (isLoading && user?.id)) {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
@@ -134,16 +167,27 @@ export function DriverTrips() {
 
   return (
     <div className="space-y-6">
-      {/* Заголовок с кнопкой создания */}
+      {/* Заголовок с кнопками */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-slate-800">Мои поездки</h2>
-        <Button
-          onClick={() => router.push('/create-trip')}
-          className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Создать поездку
-        </Button>
+        <div className="flex space-x-2">
+          <Button
+            onClick={() => refetch()}
+            disabled={isLoading}
+            variant="outline"
+            className="bg-white hover:bg-gray-50 border-gray-200"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Обновить
+          </Button>
+          <Button
+            onClick={() => router.push('/create-trip')}
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Создать поездку
+          </Button>
+        </div>
       </div>
       
       {trips.map((trip) => {
@@ -254,6 +298,40 @@ export function DriverTrips() {
                   </div>
                 </div>
               )}
+
+              {/* Кнопки действий */}
+              <div className="border-t border-slate-200 pt-4 mt-4">
+                <div className="flex flex-wrap gap-3">
+                  {trip.status === 'available' && (
+                    <Button
+                      onClick={() => handleStartTrip(trip.id)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2"
+                      disabled={updateTripStatusMutation.isPending}
+                    >
+                      <Play className="w-4 h-4 mr-2" />
+                      Начать поездку
+                    </Button>
+                  )}
+                  
+                  {trip.status === 'in_road' && (
+                    <Button
+                      onClick={() => handleFinishTrip(trip.id)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2"
+                      disabled={updateTripStatusMutation.isPending}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Завершить поездку
+                    </Button>
+                  )}
+                  
+                  {trip.status === 'finished' && (
+                    <div className="text-green-600 font-medium flex items-center">
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Поездка завершена
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         );

@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { 
   Car, 
   LogOut, 
@@ -33,11 +34,19 @@ export function Header() {
             className="flex items-center space-x-3 cursor-pointer"
             onClick={() => router.push('/')}
           >
-            <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-2 rounded-xl shadow-lg">
-              <Car className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              TransportBook
+              <Image 
+                src="/logo.png" 
+                alt="Бибика Logo" 
+                width={40} 
+                height={40} 
+                className="h-12 w-12"
+                style={{
+                  mixBlendMode: 'multiply',
+                  filter: 'contrast(1.2)'
+                }}
+              />
+            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent" style={{fontFamily: 'Inter, system-ui, sans-serif', letterSpacing: '-0.025em'}}>
+              Б и б и к а 
             </span>
           </div>
 

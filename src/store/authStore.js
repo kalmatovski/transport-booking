@@ -8,7 +8,6 @@ export const useAuthStore = create(
       isAuthenticated: false,
       accessToken: null,
       refreshToken: null,
-      isHydrated: false,
       
       login: (userData, accessToken, refreshToken) => {
         set({
@@ -46,10 +45,6 @@ export const useAuthStore = create(
           user: { ...state.user, ...userData }
         }));
       },
-
-      setHydrated: () => {
-        set({ isHydrated: true });
-      },
       
       getUser: () => get().user,
       getToken: () => get().accessToken,
@@ -67,36 +62,6 @@ export const useAuthStore = create(
     }),
     {
       name: 'auth-storage',
-      storage: createJSONStorage(() => {
-        if (typeof window !== 'undefined') {
-          return localStorage;
-        }
-        return {
-          getItem: () => null,
-          setItem: () => {},
-          removeItem: () => {},
-        };
-      }),
-      
-      partialize: (state) => ({
-        refreshToken: state.refreshToken,
-        userRole: state.user?.role,
-        isAuthenticated: state.isAuthenticated,
-      }),
-      
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          if (state.userRole && state.isAuthenticated) {
-            state.user = { role: state.userRole };
-          }
-          
-          setTimeout(() => {
-            if (state.setHydrated) {
-              state.setHydrated();
-            }
-          }, 0);
-        }
-      },
     }
   )
 );

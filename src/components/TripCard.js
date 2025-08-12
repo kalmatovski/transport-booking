@@ -4,6 +4,7 @@ import { memo, useCallback } from 'react';
 import { Clock, MapPin, Users, Star, Phone, MessageCircle } from 'lucide-react';
 import { Card, CardContent, Button } from './ui';
 import { DriverInfo } from './DriverInfo';
+import { DriverRating } from './DriverRating';
 
 const TripCard = memo(({ 
   trip, 
@@ -84,9 +85,8 @@ const TripCard = memo(({
               <div className="bg-white/40 backdrop-blur-sm rounded-xl p-4 border border-white/50">
                 <p className="text-sm text-slate-600 mb-1">Водитель</p>
                 <DriverInfo driverId={trip.driver} />
-                <div className="flex items-center space-x-1 mt-2">
-                  <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                  <span className="text-xs text-slate-600">4.8</span>
+                <div className="mt-2">
+                  <DriverRating driverId={trip.driver} size="xs" />
                 </div>
               </div>
 

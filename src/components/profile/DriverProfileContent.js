@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Camera, Car, Save, Loader2, Calendar, Star, MapPin } from 'lucide-react';
+import { DriverRating } from '../DriverRating';
 
 import { updateProfileSchema } from '../../lib/validationSchemas';
 import { authAPI, vehiclesAPI } from '../../lib/api';
@@ -21,6 +22,7 @@ function DriverProfileContent() {
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [vehicleData, setVehicleData] = useState(null);
   const [carPhoto, setCarPhoto] = useState(null);
+  const [selectedCarPhoto, setSelectedCarPhoto] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingVehicle, setSavingVehicle] = useState(false);
@@ -92,12 +94,22 @@ function DriverProfileContent() {
         ...data,
         is_active: true  // 🔧 ИСПРАВЛЕНИЕ: всегда активная машина
       };
+
+      // Если выбрана фотография и создаём новый автомобиль, добавляем её
+      if (selectedCarPhoto && !vehicleData) {
+        vehicleDataWithActiveFlag.vehicle_image = selectedCarPhoto;
+      }
       
       const response = vehicleData 
         ? await vehiclesAPI.updateVehicle(vehicleData.id, vehicleDataWithActiveFlag)
         : await vehiclesAPI.createVehicle(vehicleDataWithActiveFlag);
         
       setVehicleData(response.data);
+      
+      // Очищаем выбранную фотографию после создания
+      if (!vehicleData) {
+        setSelectedCarPhoto(null);
+      }
       
       await loadProfile();
       
@@ -162,7 +174,15 @@ function DriverProfileContent() {
         throw new Error('Пожалуйста, выберите изображение');
       }
 
+      // Сохраняем выбранный файл для создания нового автомобиля
+      setSelectedCarPhoto(file);
+      
+      // Показываем превью
+      const previewUrl = URL.createObjectURL(file);
+      setCarPhoto(previewUrl);
+
       if (vehicleData?.id) {
+        // Если автомобиль уже существует, загружаем фото сразу
         const response = await vehiclesAPI.updateVehiclePhoto(vehicleData.id, file);
         
         const photoUrl = response.data.vehicle_image;
@@ -175,10 +195,6 @@ function DriverProfileContent() {
         
         setSaveSuccess(true);
         setTimeout(() => setSaveSuccess(false), 3000);
-      } else {
-        const reader = new FileReader();
-        reader.onload = (e) => setCarPhoto(e.target.result);
-        reader.readAsDataURL(file);
       }
       
     } catch (err) {
@@ -428,10 +444,7 @@ function DriverProfileContent() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Рейтинг:</span>
-                  <span className="font-medium flex items-center">
-                    {profileData?.rating || 'Новичок'}
-                    {profileData?.rating && <Star className="w-4 h-4 ml-1 text-yellow-500" />}
-                  </span>
+                  <DriverRating driverId={profileData?.id} showLabel={false} size="sm" />
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Статус:</span>

@@ -38,8 +38,15 @@ export function RatingModal({ tripId, driverId, trip, driver, onClose }) {
       comment: data.comment
     }),
     onSuccess: () => {
+      // Инвалидируем все связанные кеши
       queryClient.invalidateQueries({ queryKey: ['my-bookings'] });
       queryClient.invalidateQueries({ queryKey: ['driverRating', actualDriverId] });
+      queryClient.invalidateQueries({ queryKey: ['available-trips'] });
+      queryClient.invalidateQueries({ queryKey: ['trip'] });
+      
+      // Принудительно рефетчим данные рейтинга
+      queryClient.refetchQueries({ queryKey: ['driverRating', actualDriverId] });
+      
       onClose();
       setRating(0);
       setComment('');
@@ -57,16 +64,6 @@ export function RatingModal({ tripId, driverId, trip, driver, onClose }) {
       alert('Пожалуйста, поставьте оценку');
       return;
     }
-
-    console.log('Sending rating data:', {
-      tripId,
-      driverId: actualDriverId,
-      rating,
-      comment: comment.trim(),
-      tripData,
-      driverInfo
-    });
-
     ratingMutation.mutate({
       rating,
       comment: comment.trim()

@@ -151,10 +151,17 @@ export const Alert = ({ children, variant = 'default', className = '' }) => {
   );
 };
 
-export const LoadingSpinner = ({ className = '', ...props }) => {
+export const LoadingSpinner = ({ className = '', size = 'md', ...props }) => {
+  const sizeClasses = {
+    sm: 'h-4 w-4',
+    md: 'h-6 w-6',
+    lg: 'h-8 w-8',
+    xl: 'h-12 w-12'
+  };
+
   return (
     <Loader2
-      className={`h-6 w-6 animate-spin text-yellow-600 ${className}`}
+      className={`${sizeClasses[size]} animate-spin text-yellow-600 ${className}`}
       {...props}
     />
   );

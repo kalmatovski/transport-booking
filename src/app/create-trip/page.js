@@ -52,7 +52,8 @@ export default function CreateTripPage() {
   const createTripMutation = useMutation({
     mutationFn: ridesAPI.createTrip,
     onSuccess: () => {
-      queryClient.invalidateQueries(['my-trips']);
+      queryClient.invalidateQueries({ queryKey: ['myTrips', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['available-trips'] });
       router.push('/');
     },
     onError: (error) => {

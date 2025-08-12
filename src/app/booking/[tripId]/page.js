@@ -21,6 +21,7 @@ import { ridesAPI, bookingAPI } from '../../../lib/api';
 import { Button, Card, CardContent, Alert, LoadingSpinner } from '../../../components/ui';
 import { withAuth } from '../../../components/withAuth';
 import { DriverInfo } from '../../../components/DriverInfo';
+import { DriverRating } from '../../../components/DriverRating';
 
 function BookingPage() {
   const router = useRouter();
@@ -317,10 +318,7 @@ function BookingPage() {
                     <h4 className="font-semibold text-slate-800 mb-3">Водитель</h4>
                     <div className="space-y-2">
                       <DriverInfo driverId={trip.driver} />
-                      <div className="flex items-center space-x-1">
-                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                        <span className="text-sm text-slate-600">4.8 (32 отзыва)</span>
-                      </div>
+                      <DriverRating driverId={trip.driver} showLabel={true} size="sm" />
                       <Button variant="outline" size="sm" className="w-full">
                         <Phone className="w-4 h-4 mr-2" />
                         Связаться

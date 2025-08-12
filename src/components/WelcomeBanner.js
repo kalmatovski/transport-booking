@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Car, Users, MapPin, DollarSign, UserPlus, User } from 'lucide-react';
 import { Button } from './ui';
 
@@ -19,11 +20,21 @@ export function WelcomeBanner() {
         </div>
         
         <div className="relative z-10">
-          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-6 rounded-2xl shadow-lg mx-auto w-fit mb-6">
-            <Car className="w-16 h-16 text-white" />
+          <div className="bg-white/20 backdrop-blur-sm p-6 rounded-2xl mx-auto w-fit mb-6">
+            <Image 
+              src="/logo.PNG" 
+              alt="Бибика Logo" 
+              width={64} 
+              height={64} 
+              className="w-16 h-16 object-contain"
+              style={{
+                mixBlendMode: 'multiply',
+                filter: 'contrast(1.2)'
+              }}
+            />
           </div>
           <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
-            TransportBook
+            Б и б и к а
           </h1>
           <p className="text-xl text-slate-700 mb-8 max-w-2xl mx-auto">
             Удобное бронирование поездок по всей стране

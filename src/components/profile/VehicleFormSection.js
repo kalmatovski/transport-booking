@@ -22,9 +22,7 @@ import {
 const vehicleSchema = z.object({
   brand: z.string().min(1, 'Укажите марку автомобиля'),
   model: z.string().min(1, 'Укажите модель автомобиля'),
-  plate_number: z.string()
-    .min(1, 'Укажите номер автомобиля')
-    .regex(/^[АВЕКМНОРСТУХ]\d{3}[АВЕКМНОРСТУХ]{2}\d{2,3}$/i, 'Неверный формат номера (например: А123БВ24)'),
+  plate_number: z.string().min(1, 'Укажите номер автомобиля'),
   color: z.string().min(1, 'Укажите цвет автомобиля'),
   seats: z.number().min(1, 'Минимум 1 место').max(8, 'Максимум 8 мест'),
   year: z.number().min(1990, 'Год должен быть не ранее 1990').max(new Date().getFullYear(), 'Год не может быть в будущем').optional(),

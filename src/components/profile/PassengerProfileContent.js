@@ -536,7 +536,6 @@ function PassengerProfileContent() {
       {/* Модальное окно для рейтинга */}
       {selectedBookingForRating && (
         <>
-          {console.log('Selected booking for rating:', selectedBookingForRating)}
           <RatingModal
             tripId={selectedBookingForRating.trip}
             driverId={selectedBookingForRating.trip_details?.driver_id || selectedBookingForRating.trip_details?.driver}

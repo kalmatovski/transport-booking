@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { useAuthStore } from '../store/authStore';
+import { useIsHydrated } from '../hooks/useIsHydrated';
 import { Button, Alert, LoadingSpinner } from '../components/ui';
 import { DriverInfo } from '../components/DriverInfo';
 import { DriverTrips } from '../components/DriverTrips';
@@ -24,16 +25,18 @@ export default function HomePage() {
   const { user, isAuthenticated } = useAuthStore();
   const router = useRouter();
   const [selectedRoute, setSelectedRoute] = useState('');
+  const isHydrated = useIsHydrated();
 
   const isDriver = useMemo(() => user?.role === 'driver', [user?.role]);
   const isPassenger = useMemo(() => user?.role === 'passenger', [user?.role]);
 
+  // Вызываем useTrips всегда, но с условием для включения
   const { 
     data: availableTrips = [], 
     isLoading: tripsLoading,
     error: tripsError,
     refetch: refetchTrips
-  } = useTrips(selectedRoute, null, isAuthenticated && isPassenger);
+  } = useTrips(selectedRoute, null, isAuthenticated && isPassenger && isHydrated);
 
   const handleSearch = useCallback(() => {
     refetchTrips();
@@ -84,14 +87,10 @@ export default function HomePage() {
     switch (status) {
       case 'available':
         return 'bg-green-100 text-green-800';
-      case 'full':
-        return 'bg-red-100 text-red-800';
       case 'in_road':
         return 'bg-blue-100 text-blue-800';
       case 'finished':
         return 'bg-gray-100 text-gray-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -100,19 +99,26 @@ export default function HomePage() {
   const getStatusText = useCallback((status) => {
     switch (status) {
       case 'available':
-        return 'Свободен';
-      case 'full':
-        return 'Заполнен';
+        return 'Доступна';
       case 'in_road':
         return 'В пути';
       case 'finished':
         return 'Завершена';
-      case 'cancelled':
-        return 'Отменена';
       default:
-        return status;
+        return 'Неизвестно';
     }
   }, []);
+
+  // Не показываем содержимое до гидратации
+  if (!isHydrated) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-96">
+          <LoadingSpinner size="lg" />
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

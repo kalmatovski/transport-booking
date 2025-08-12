@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../store/authStore';
 import { authAPI } from '../../lib/api';
 import { LoadingSpinner } from '../ui';
@@ -9,16 +9,19 @@ import PassengerProfileContent from './PassengerProfileContent';
 
 function ProfileContentWithLoading() {
   const { updateUser } = useAuthStore();
+  const queryClient = useQueryClient();
   
-  const { data: profile, isLoading, error } = useQuery({
+  const { data: profile, isLoading, error, refetch } = useQuery({
     queryKey: ['profile'],
     queryFn: authAPI.getProfile,
     select: (data) => data.data,
-    onSuccess: (data) => {
-      updateUser(data); 
-    },
     retry: 1,
   });
+
+  // Обновляем пользователя в store при загрузке профиля
+  if (profile && !isLoading && !error) {
+    updateUser(profile);
+  }
 
   if (isLoading) {
     return (
@@ -43,10 +46,10 @@ function ProfileContentWithLoading() {
           </p>
           <div className="space-x-2">
             <button 
-              onClick={() => window.location.reload()}
+              onClick={() => refetch()}
               className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
             >
-              Обновить
+              Повторить
             </button>
             <button 
               onClick={() => window.location.href = '/'}

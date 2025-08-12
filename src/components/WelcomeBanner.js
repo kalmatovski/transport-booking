@@ -22,7 +22,7 @@ export function WelcomeBanner() {
         <div className="relative z-10">
           <div className="bg-white/20 backdrop-blur-sm p-6 rounded-2xl mx-auto w-fit mb-6">
             <Image 
-              src="/logo.PNG" 
+              src="/logo.png" 
               alt="Бибика Logo" 
               width={64} 
               height={64} 

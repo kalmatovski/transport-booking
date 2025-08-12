@@ -4,19 +4,21 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Camera, Save, Loader2, Calendar, MapPin, Clock, Users, Car, CheckCircle, XCircle, AlertCircle, Star } from 'lucide-react';
 
 import { updateProfileSchema } from '../../lib/validationSchemas';
 import { authAPI, bookingAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
 import RatingModal from '../RatingModal';
+import { notify } from '../../lib/notify';
 
 import { LoadingState, ErrorState, ProfileHeader, NotificationBanner } from './ProfileStates';
 
 function PassengerProfileContent() {
   const router = useRouter();
   const { user, updateUser } = useAuthStore();
+  const queryClient = useQueryClient();
   
   const [profileData, setProfileData] = useState(null);
   const [profilePhoto, setProfilePhoto] = useState(null);
@@ -34,9 +36,13 @@ function PassengerProfileContent() {
     isLoading: bookingsLoading,
     error: bookingsError 
   } = useQuery({
-    queryKey: ['my-bookings'],
-    queryFn: () => bookingAPI.getMyBookings(),
+    queryKey: ['my-bookings', user?.id],
+    queryFn: async () => {
+      const result = await bookingAPI.getMyBookings();
+      return result;
+    },
     select: (data) => data.data || [],
+    enabled: !!user?.id,
   });
 
   const {
@@ -170,9 +176,14 @@ function PassengerProfileContent() {
   const handleCancelBooking = async (bookingId) => {
     try {
       await bookingAPI.cancelBooking(bookingId);
-      window.location.reload();
+      notify.success('Бронирование успешно отменено');
+      queryClient.invalidateQueries(['my-bookings', user?.id]);
     } catch (error) {
-      console.error('Ошибка отмены брони:', error);
+      const errorMessage = error.response?.data?.detail || 
+                          error.response?.data?.message || 
+                          error.message || 
+                          'Произошла ошибка при отмене бронирования';
+      notify.error(`Ошибка отмены брони: ${errorMessage}`);
     }
   };
 
@@ -540,7 +551,8 @@ function PassengerProfileContent() {
             tripId={selectedBookingForRating.trip}
             driverId={selectedBookingForRating.trip_details?.driver_id || selectedBookingForRating.trip_details?.driver}
             trip={selectedBookingForRating.trip_details}
-            driver={selectedBookingForRating.trip_details?.driver}
+            driver={null}
+            userId={user?.id}
             onClose={() => setSelectedBookingForRating(null)}
           />
         </>

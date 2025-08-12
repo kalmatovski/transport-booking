@@ -182,7 +182,9 @@ export const bookingAPI = {
   },
   
   getMyBookings: () => {
-    return api.get('/bookings/');
+    return api.get('/bookings/').then(response => {
+      return response;
+    });
   },
   
   getBooking: (bookingId) => {
@@ -207,8 +209,6 @@ export const bookingAPI = {
     });
   },
 };
-
-
 
 export const vehiclesAPI = {
   getAllVehicles: () => {

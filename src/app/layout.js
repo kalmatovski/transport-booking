@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
 export const metadata = {
   title: 'Бибика - Бронирование поездок',
-  description: 'Удобное бронирование поездок между Красноярском и Абаканом',
+  description: 'Удобное бронирование поездок!!!',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
@@ -30,17 +30,17 @@ export default function RootLayout({ children }) {
             {children}
           </div>
           <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            theme="light"
-          />
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
         </QueryProvider>
       </body>
     </html>

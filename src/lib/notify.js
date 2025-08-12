@@ -28,15 +28,6 @@ export const notify = {
     draggable: true,
   }),
   
-  info: (message) => toast.info(message, {
-    position: "top-right",
-    autoClose: 3000,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-  }),
-  
   loading: (message) => toast.loading(message),
   
   dismiss: (toastId) => toast.dismiss(toastId),

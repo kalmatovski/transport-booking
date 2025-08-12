@@ -18,6 +18,9 @@ export function DriverTrips() {
   const { user } = useAuthStore();
   const isHydrated = useIsHydrated();
   
+  // Состояние для табов
+  const [activeTab, setActiveTab] = useState('active');
+  
   // Состояние для модалок
   const [startTripModal, setStartTripModal] = useState({
     isOpen: false,
@@ -33,22 +36,21 @@ export function DriverTrips() {
     queryKey: ['myTrips', user?.id],
     queryFn: () => ridesAPI.getMyTrips(),
     select: (data) => data.data,
-    enabled: !!user?.id, // Простая проверка только на наличие userId
-    // Убираем агрессивное кэширование
-    staleTime: 0, // Данные всегда считаются устаревшими
-    cacheTime: 0, // Не храним в кеше
-    refetchOnMount: true, // Всегда обновляем при монтировании
-    refetchOnWindowFocus: false, // Не обновляем при фокусе
+    enabled: !!user?.id,
+    staleTime: 0,
+    cacheTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
   // Мутация для обновления статуса поездки
   const updateTripStatusMutation = useMutation({
     mutationFn: ({ tripId, status }) => ridesAPI.updateTripStatus(tripId, status),
-    onSuccess: (response, { status }) => {
-      // Просто перезагружаем данные вместо инвалидации кэша
+    onSuccess: (response, { status, tripId }) => {
+      // Инвалидируем и обновляем кэш
+      queryClient.invalidateQueries(['myTrips', user?.id]);
       refetch();
       
-      // Показываем уведомление в зависимости от статуса
       if (status === 'in_road') {
         notify.success('Поездка началась! Пассажиры получили уведомление');
       } else if (status === 'finished') {
@@ -56,6 +58,7 @@ export function DriverTrips() {
       }
     },
     onError: (error) => {
+      console.error('Error updating trip status:', error);
       const errorMessage = error.response?.data?.detail || error.message || 'Ошибка при обновлении статуса';
       notify.error(errorMessage);
     }
@@ -74,6 +77,14 @@ export function DriverTrips() {
   const handleStartTrip = (tripId) => {
     const trip = trips?.find(t => t.id === tripId);
     if (trip) {
+      // Проверяем, есть ли забронированные места
+      const bookedSeats = (trip.car?.seat_count || 4) - trip.available_seats;
+      
+      if (bookedSeats === 0) {
+        notify.warning('Нельзя начать поездку без пассажиров! Дождитесь хотя бы одного бронирования');
+        return;
+      }
+      
       setStartTripModal({
         isOpen: true,
         trip: trip
@@ -100,6 +111,24 @@ export function DriverTrips() {
     updateTripStatusMutation.mutate({ tripId, status: 'finished' });
     setFinishTripModal({ isOpen: false, trip: null });
   };
+
+  // Фильтрация поездок по статусу
+  const getFilteredTrips = useCallback(() => {
+    if (!trips) return [];
+    
+    switch (activeTab) {
+      case 'active':
+        return trips.filter(trip => trip.status === 'available');
+      case 'in_road':
+        return trips.filter(trip => trip.status === 'in_road');
+      case 'finished':
+        return trips.filter(trip => trip.status === 'finished');
+      default:
+        return trips;
+    }
+  }, [trips, activeTab]);
+
+  const filteredTrips = getFilteredTrips();
 
   const getTimeUntilDeparture = useCallback((departureTime) => {
     const now = new Date();
@@ -165,7 +194,7 @@ export function DriverTrips() {
       <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
         <p className="text-red-600">Ошибка загрузки поездок</p>
         <button 
-          onClick={() => window.location.reload()} 
+          onClick={() => refetch()} 
           className="mt-2 text-red-700 underline"
         >
           Попробовать снова
@@ -206,31 +235,89 @@ export function DriverTrips() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Заголовок с кнопками */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">Мои поездки</h2>
-        <div className="flex space-x-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Мои поездки</h2>
+        <div className="flex flex-col sm:flex-row gap-2 sm:space-x-2">
           <Button
             onClick={() => refetch()}
             disabled={isLoading}
             variant="outline"
-            className="bg-white hover:bg-gray-50 border-gray-200"
+            className="bg-white hover:bg-gray-50 border-gray-200 w-full sm:w-auto"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Обновить
+            <RefreshCw className={`w-4 h-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Обновить</span>
           </Button>
           <Button
             onClick={() => router.push('/create-trip')}
-            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 w-full sm:w-auto"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            Создать поездку
+            <Plus className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Создать поездку</span>
+            <span className="sm:hidden">Создать</span>
           </Button>
         </div>
       </div>
+
+      {/* Табы */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="flex border-b border-gray-200">
+          <button
+            onClick={() => {
+              setActiveTab('active');
+              refetch();
+            }}
+            className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors ${
+              activeTab === 'active'
+                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <span className="block sm:inline">Активные</span>
+            {trips && (
+              <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs bg-blue-100 text-blue-600 rounded-full">
+                {trips.filter(t => t.status === 'available').length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('in_road');
+              refetch();
+            }}
+            className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors ${
+              activeTab === 'in_road'
+                ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <span className="block sm:inline">В пути</span>
+            {trips && (
+              <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs bg-green-100 text-green-600 rounded-full">
+                {trips.filter(t => t.status === 'in_road').length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('finished')}
+            className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium transition-colors ${
+              activeTab === 'finished'
+                ? 'text-gray-600 border-b-2 border-gray-600 bg-gray-50'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <span className="block sm:inline">Завершенные</span>
+            {trips && (
+              <span className="ml-1 sm:ml-2 px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+                {trips.filter(t => t.status === 'finished').length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
       
-      {trips.map((trip) => {
+      {filteredTrips.map((trip) => {
         const timeInfo = getTimeUntilDeparture(trip.departure_time);
         
         return (
@@ -343,14 +430,31 @@ export function DriverTrips() {
               <div className="border-t border-slate-200 pt-4 mt-4">
                 <div className="flex flex-wrap gap-3">
                   {trip.status === 'available' && (
-                    <Button
-                      onClick={() => handleStartTrip(trip.id)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2"
-                      disabled={updateTripStatusMutation.isPending}
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Начать поездку
-                    </Button>
+                    <>
+                      {(() => {
+                        const bookedSeats = (trip.car?.seat_count || 4) - trip.available_seats;
+                        const hasPassengers = bookedSeats > 0;
+                        
+                        return (
+                          <Button
+                            onClick={() => handleStartTrip(trip.id)}
+                            className={`px-4 py-2 ${
+                              hasPassengers 
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                            disabled={updateTripStatusMutation.isPending || !hasPassengers}
+                            title={!hasPassengers ? 'Дождитесь хотя бы одного бронирования' : ''}
+                          >
+                            <Play className="w-4 h-4 mr-2" />
+                            Начать поездку
+                            {!hasPassengers && (
+                              <span className="ml-2 text-xs">(нет пассажиров)</span>
+                            )}
+                          </Button>
+                        );
+                      })()}
+                    </>
                   )}
                   
                   {trip.status === 'in_road' && (

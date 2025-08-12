@@ -5,8 +5,9 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { Star, X, Send } from 'lucide-react';
 import { ratingsAPI, authAPI, ridesAPI } from '../lib/api';
 import { Button, Card, CardContent } from './ui';
+import { notify } from '../lib/notify';
 
-export function RatingModal({ tripId, driverId, trip, driver, onClose }) {
+export function RatingModal({ tripId, driverId, trip, driver, onClose, userId }) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -39,7 +40,7 @@ export function RatingModal({ tripId, driverId, trip, driver, onClose }) {
     }),
     onSuccess: () => {
       // Инвалидируем все связанные кеши
-      queryClient.invalidateQueries({ queryKey: ['my-bookings'] });
+      queryClient.invalidateQueries({ queryKey: ['my-bookings', userId] });
       queryClient.invalidateQueries({ queryKey: ['driverRating', actualDriverId] });
       queryClient.invalidateQueries({ queryKey: ['available-trips'] });
       queryClient.invalidateQueries({ queryKey: ['trip'] });
@@ -47,21 +48,24 @@ export function RatingModal({ tripId, driverId, trip, driver, onClose }) {
       // Принудительно рефетчим данные рейтинга
       queryClient.refetchQueries({ queryKey: ['driverRating', actualDriverId] });
       
+      notify.success('Спасибо за вашу оценку! Отзыв успешно отправлен');
       onClose();
       setRating(0);
       setComment('');
     },
     onError: (error) => {
-      console.error('Rating error:', error);
-      console.error('Error response:', error.response?.data);
-      alert(`Ошибка при отправке оценки: ${error.response?.data?.detail || JSON.stringify(error.response?.data) || error.message}`);
+      const errorMessage = error.response?.data?.detail || 
+                          error.response?.data?.message || 
+                          error.message || 
+                          'Произошла ошибка при отправке оценки';
+      notify.error(`Ошибка при отправке оценки: ${errorMessage}`);
     }
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (rating === 0) {
-      alert('Пожалуйста, поставьте оценку');
+      notify.warning('Пожалуйста, поставьте оценку');
       return;
     }
     ratingMutation.mutate({

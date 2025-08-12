@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
 import { 
   Clock,
   Phone,
@@ -18,8 +17,8 @@ import { DriverTrips } from '../components/DriverTrips';
 import { AppLayout } from '../components/layout/AppLayout';
 import { WelcomeBanner } from '../components/WelcomeBanner';
 import { SearchForm } from '../components/SearchForm';
+import { ridesAPI } from '../lib/api';
 import { TripsList } from '../components/TripsList';
-import { useTrips } from '../hooks/useTrips';
 
 export default function HomePage() {
   const { user, isAuthenticated } = useAuthStore();
@@ -30,17 +29,34 @@ export default function HomePage() {
   const isDriver = useMemo(() => user?.role === 'driver', [user?.role]);
   const isPassenger = useMemo(() => user?.role === 'passenger', [user?.role]);
 
-  // Вызываем useTrips всегда, но с условием для включения
-  const { 
-    data: availableTrips = [], 
-    isLoading: tripsLoading,
-    error: tripsError,
-    refetch: refetchTrips
-  } = useTrips(selectedRoute, null, isAuthenticated && isPassenger && isHydrated);
+  // Состояния для поездок
+  const [availableTrips, setAvailableTrips] = useState([]);
+  const [tripsLoading, setTripsLoading] = useState(false);
+  const [tripsError, setTripsError] = useState(null);
+
+  // Функция загрузки поездок
+  const loadTrips = useCallback(async () => {
+    if (!isAuthenticated || !isPassenger || !isHydrated) return;
+    
+    try {
+      setTripsLoading(true);
+      setTripsError(null);
+      const response = await ridesAPI.getAvailableTrips(selectedRoute, null);
+      setAvailableTrips(response.data || []);
+    } catch (err) {
+      setTripsError(err.response?.data?.detail || err.message || 'Ошибка загрузки поездок');
+    } finally {
+      setTripsLoading(false);
+    }
+  }, [selectedRoute, isAuthenticated, isPassenger, isHydrated]);
+
+  useEffect(() => {
+    loadTrips();
+  }, [loadTrips]);
 
   const handleSearch = useCallback(() => {
-    refetchTrips();
-  }, [refetchTrips]);
+    loadTrips();
+  }, [loadTrips]);
 
   const handleBooking = useCallback((trip) => {
     if (!isAuthenticated) {

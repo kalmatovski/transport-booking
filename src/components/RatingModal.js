@@ -7,7 +7,7 @@ import { ratingsAPI, authAPI, ridesAPI } from '../lib/api';
 import { Button, Card, CardContent } from './ui';
 import { notify } from '../lib/notify';
 
-export function RatingModal({ tripId, driverId, trip, driver, onClose, userId }) {
+export function RatingModal({ tripId, driverId, trip, driver, onClose, userId, onRatingSuccess }) {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -49,6 +49,12 @@ export function RatingModal({ tripId, driverId, trip, driver, onClose, userId })
       queryClient.refetchQueries({ queryKey: ['driverRating', actualDriverId] });
       
       notify.success('Спасибо за вашу оценку! Отзыв успешно отправлен');
+      
+      // Вызываем callback для обновления UI
+      if (onRatingSuccess) {
+        onRatingSuccess();
+      }
+      
       onClose();
       setRating(0);
       setComment('');

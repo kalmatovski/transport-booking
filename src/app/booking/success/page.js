@@ -15,7 +15,7 @@ import {
   Star
 } from 'lucide-react';
 
-import { bookingAPI, ratingsAPI, authAPI } from '../../../lib/api';
+import { bookingAPI, authAPI } from '../../../lib/api';
 import { Button, Card, CardContent, LoadingSpinner } from '../../../components/ui';
 import { withAuth } from '../../../components/withAuth';
 import { AppLayout } from '../../../components/layout/AppLayout';
@@ -37,10 +37,6 @@ function BookingSuccessPage() {
   const [driver, setDriver] = useState(null);
   const [driverLoading, setDriverLoading] = useState(true);
   const [driverError, setDriverError] = useState(null);
-
-  // Состояния для рейтинга водителя
-  const [driverRating, setDriverRating] = useState(null);
-  const [driverRatingLoading, setDriverRatingLoading] = useState(true);
 
   const loadBooking = useCallback(async () => {
     try {
@@ -68,18 +64,6 @@ function BookingSuccessPage() {
     }
   };
 
-  const loadDriverRating = async (driverId) => {
-    try {
-      setDriverRatingLoading(true);
-      const response = await ratingsAPI.getDriverRatings(driverId);
-      setDriverRating(response.data);
-    } catch (err) {
-      console.error('Error loading driver rating:', err);
-    } finally {
-      setDriverRatingLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (bookingId && isHydrated) {
       loadBooking();
@@ -90,7 +74,6 @@ function BookingSuccessPage() {
     if (booking?.trip_details?.driver || booking?.trip?.driver) {
       const driverId = booking.trip_details?.driver || booking.trip?.driver;
       loadDriver(driverId);
-      loadDriverRating(driverId);
     }
   }, [booking]);
 
@@ -275,7 +258,6 @@ function BookingSuccessPage() {
             </Card>
           </div>
 
-          {/* Информация о водителе */}
           {driver && (
             <Card className="bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl mt-8">
               <CardContent className="p-6">
@@ -301,22 +283,12 @@ function BookingSuccessPage() {
                       </span>
                     </div>
 
-                    {driverRating && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-600">Рейтинг:</span>
-                        <span className="font-semibold text-slate-800 flex items-center">
-                          <Star className="w-4 h-4 mr-1 text-yellow-500 fill-current" />
-                          {parseFloat(driverRating.average_rating || 0).toFixed(1)} 
-                          <span className="text-slate-500 ml-1">
-                            ({driverRating.total_ratings} отзывов)
-                          </span>
-                        </span>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-600">Рейтинг:</span>
+                      <div className="font-semibold text-slate-800">
+                        <DriverRating driverId={tripData?.driver} showLabel={false} size="sm" />
                       </div>
-                    )}
-                  </div>
-
-                  <div className="md:text-right">
-                    <DriverRating driverId={tripData?.driver} />
+                    </div>
                   </div>
                 </div>
               </CardContent>

@@ -1,66 +1,41 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Camera, Car, Save, Loader2, Calendar, Star, MapPin } from 'lucide-react';
+import { Star, MapPin } from 'lucide-react';
 import { DriverRating } from '../DriverRating';
 
-import { updateProfileSchema } from '../../lib/validationSchemas';
 import { authAPI, vehiclesAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
-import { notify } from '../../lib/notify';
 
 import { LoadingState, ErrorState, ProfileHeader, NotificationBanner } from './ProfileStates';
-import VehicleFormSection from './VehicleFormSection';
+import { ProfileAvatar, ProfileForm, DriverStats } from './ProfileComponents';
+import { VehicleManager } from './VehicleManager';
 
 function DriverProfileContent() {
   const router = useRouter();
-  const { user, updateUser } = useAuthStore();
+  const { user } = useAuthStore();
   
   const [profileData, setProfileData] = useState(null);
-  const [profilePhoto, setProfilePhoto] = useState(null);
   const [vehicleData, setVehicleData] = useState(null);
-  const [carPhoto, setCarPhoto] = useState(null);
-  const [selectedCarPhoto, setSelectedCarPhoto] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [savingVehicle, setSavingVehicle] = useState(false);
-  const [deletingVehicle, setDeletingVehicle] = useState(false);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [uploadingCarPhoto, setUploadingCarPhoto] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState(null);
-  
-  const fileInputRef = useRef(null);
 
-  const profileForm = useForm({
-    resolver: zodResolver(updateProfileSchema),
-  });
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
       const profileResponse = await authAPI.getProfile();
-      
       setProfileData(profileResponse.data);
-      setProfilePhoto(profileResponse.data.avatar ? `http://127.0.0.1:8000${profileResponse.data.avatar}` : null);
-      profileForm.reset(profileResponse.data);
       
       try {
         const vehiclesResponse = await vehiclesAPI.getMyVehicles();
         const myVehicles = vehiclesResponse.data;
-        
         const myVehicle = myVehicles && myVehicles.length > 0 ? myVehicles[0] : null;
-        
-        if (myVehicle) {
-          setVehicleData(myVehicle);
-          setCarPhoto(myVehicle.vehicle_image || null);
-        }
+        setVehicleData(myVehicle);
       } catch (vehicleError) {
+        // Игнорируем ошибки загрузки автомобиля
       }
       
     } catch (err) {
@@ -68,188 +43,19 @@ function DriverProfileContent() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const handleProfileUpdate = (updatedData) => {
+    setProfileData(prev => ({ ...prev, ...updatedData }));
   };
 
-  const onSubmitProfile = async (data) => {
-    try {
-      setSaving(true);
-      setError(null);
-      const response = await authAPI.updateProfile(data);
-      setProfileData(response.data);
-      updateUser(response.data);
-      setSaveSuccess(true);
-      notify.success('Профиль успешно обновлен');
-      setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (err) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Ошибка сохранения профиля';
-      setError(errorMessage);
-      notify.error(errorMessage);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleVehicleSave = async (data) => {
-    try {
-      setSavingVehicle(true);
-      setError(null);
-      
-      const vehicleDataWithActiveFlag = {
-        ...data,
-        is_active: true  // 🔧 ИСПРАВЛЕНИЕ: всегда активная машина
-      };
-
-      // Если выбрана фотография и создаём новый автомобиль, добавляем её
-      if (selectedCarPhoto && !vehicleData) {
-        vehicleDataWithActiveFlag.vehicle_image = selectedCarPhoto;
-      }
-      
-      const response = vehicleData 
-        ? await vehiclesAPI.updateVehicle(vehicleData.id, vehicleDataWithActiveFlag)
-        : await vehiclesAPI.createVehicle(vehicleDataWithActiveFlag);
-        
-      setVehicleData(response.data);
-      
-      // Очищаем выбранную фотографию после создания
-      if (!vehicleData) {
-        setSelectedCarPhoto(null);
-      }
-      
-      await loadProfile();
-      
-      setSaveSuccess(true);
-      const action = vehicleData ? 'обновлен' : 'добавлен';
-      notify.success(`Автомобиль успешно ${action}`);
-      setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (err) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Ошибка сохранения автомобиля';
-      setError(errorMessage);
-      notify.error(errorMessage);
-    } finally {
-      setSavingVehicle(false);
-    }
-  };
-
-  const handlePhotoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploadingPhoto(true);
-      
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error('Файл слишком большой. Максимальный размер: 5MB');
-      }
-      
-      if (!file.type.startsWith('image/')) {
-        throw new Error('Пожалуйста, выберите изображение');
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => setProfilePhoto(e.target.result);
-      reader.readAsDataURL(file);
-
-      const response = await authAPI.updateAvatar(file);
-      
-      await loadProfile();
-      
-      setSaveSuccess(true);
-      notify.success('Фото профиля успешно обновлено');
-      setTimeout(() => setSaveSuccess(false), 3000);
-    } catch (err) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Ошибка загрузки фото профиля';
-      setError(errorMessage);
-      notify.error(errorMessage);
-      if (profileData?.avatar) {
-        setProfilePhoto(`http://127.0.0.1:8000${profileData.avatar}`);
-      } else {
-        setProfilePhoto(null);
-      }
-    } finally {
-      setUploadingPhoto(false);
-    }
-  };
-
-  const handleVehiclePhotoUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploadingCarPhoto(true);
-      
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error('Файл слишком большой. Максимальный размер: 5MB');
-      }
-      
-      if (!file.type.startsWith('image/')) {
-        throw new Error('Пожалуйста, выберите изображение');
-      }
-
-      // Сохраняем выбранный файл для создания нового автомобиля
-      setSelectedCarPhoto(file);
-      
-      // Показываем превью
-      const previewUrl = URL.createObjectURL(file);
-      setCarPhoto(previewUrl);
-
-      if (vehicleData?.id) {
-        // Если автомобиль уже существует, загружаем фото сразу
-        const response = await vehiclesAPI.updateVehiclePhoto(vehicleData.id, file);
-        
-        const photoUrl = response.data.vehicle_image;
-        if (photoUrl) {
-          const fullPhotoUrl = photoUrl.startsWith('http') 
-            ? photoUrl 
-            : `http://127.0.0.1:8000${photoUrl}`;
-          setCarPhoto(fullPhotoUrl);
-        }
-        
-        setSaveSuccess(true);
-        setTimeout(() => setSaveSuccess(false), 3000);
-      }
-      
-    } catch (err) {
-      setError('Ошибка загрузки фото автомобиля');
-      console.error('Car photo upload error:', err);
-    } finally {
-      setUploadingCarPhoto(false);
-    }
+  const handleVehicleUpdate = (vehicleInfo) => {
+    setVehicleData(vehicleInfo);
   };
 
   useEffect(() => {
     loadProfile();
-  }, []);
-
-  const handleVehicleDelete = async () => {
-    if (!vehicleData) return;
-    
-    const confirmed = window.confirm(
-      `Вы уверены, что хотите удалить автомобиль ${vehicleData.brand} ${vehicleData.model}? Это действие нельзя отменить.`
-    );
-    
-    if (!confirmed) return;
-
-    try {
-      setDeletingVehicle(true);
-      setError(null);
-      
-      await vehiclesAPI.deleteVehicle(vehicleData.id);
-      
-      setVehicleData(null);
-      setCarPhoto(null);
-      
-      setSaveSuccess(true);
-      notify.success('Автомобиль успешно удален');
-      setTimeout(() => setSaveSuccess(false), 3000);
-      
-    } catch (err) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Ошибка при удалении автомобиля';
-      setError(errorMessage);
-      notify.error(errorMessage);
-    } finally {
-      setDeletingVehicle(false);
-    }
-  };
+  }, [loadProfile]);
 
   if (loading) {
     return <LoadingState colorScheme="green" message="Загружаем профиль водителя..." />;
@@ -269,7 +75,6 @@ function DriverProfileContent() {
 
   return (
     <>
-      {/* Используем переиспользуемый хедер с зеленой схемой */}
       <ProfileHeader 
         colorScheme="green"
         title="Профиль водителя"
@@ -277,16 +82,6 @@ function DriverProfileContent() {
       />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Уведомления */}
-        {saveSuccess && (
-          <NotificationBanner 
-            type="success" 
-            message="Профиль успешно обновлен!"
-            onClose={() => setSaveSuccess(false)}
-          />
-        )}
-
         {error && (
           <NotificationBanner 
             type="error" 
@@ -299,7 +94,7 @@ function DriverProfileContent() {
           {/* Основная информация */}
           <div className="lg:col-span-2 space-y-8">
             
-            {/* Форма профиля водителя */}
+            {/* Профиль */}
             <div className="bg-white rounded-xl border border-green-200 shadow-lg overflow-hidden">
               <div className="px-6 py-4 bg-gradient-to-r from-green-400 to-emerald-500 text-white">
                 <h2 className="text-xl font-semibold">Личная информация</h2>
@@ -307,37 +102,13 @@ function DriverProfileContent() {
               </div>
               
               <div className="p-6">
-                {/* Аватар профиля */}
+                {/* Аватар и основная информация */}
                 <div className="flex items-center space-x-6 mb-6">
-                  <div className="relative">
-                    <div className="h-20 w-20 rounded-full overflow-hidden bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center shadow-lg">
-                      {profilePhoto ? (
-                        <img src={profilePhoto} alt="Профиль" className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-white text-2xl font-bold">
-                          {profileData?.first_name?.[0] || profileData?.username?.[0] || 'В'}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingPhoto}
-                      className="absolute -bottom-1 -right-1 h-7 w-7 bg-green-600 hover:bg-green-700 text-white rounded-full flex items-center justify-center shadow-lg transition-colors"
-                    >
-                      {uploadingPhoto ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Camera className="h-4 w-4" />
-                      )}
-                    </button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      className="hidden"
-                    />
-                  </div>
+                  <ProfileAvatar 
+                    profileData={profileData}
+                    colorScheme="green"
+                    onUpdate={loadProfile}
+                  />
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">
                       {profileData?.first_name && profileData?.last_name 
@@ -352,100 +123,24 @@ function DriverProfileContent() {
                   </div>
                 </div>
 
-                {/* Упрощенная форма профиля */}
-                <form onSubmit={profileForm.handleSubmit(onSubmitProfile)} className="space-y-4">
-                  {/* Имя */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Имя *</label>
-                    <input
-                      placeholder="Введите ваше имя"
-                      className={`block w-full px-3 py-2 border rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 ${profileForm.formState.errors.first_name ? 'border-red-300' : 'border-gray-300 hover:border-green-300'}`}
-                      {...profileForm.register('first_name')}
-                    />
-                    {profileForm.formState.errors.first_name && (
-                      <p className="text-sm text-red-600">{profileForm.formState.errors.first_name.message}</p>
-                    )}
-                  </div>
-
-                  {/* Фамилия */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Фамилия *</label>
-                    <input
-                      placeholder="Введите вашу фамилию"
-                      className={`block w-full px-3 py-2 border rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 ${profileForm.formState.errors.last_name ? 'border-red-300' : 'border-gray-300 hover:border-green-300'}`}
-                      {...profileForm.register('last_name')}
-                    />
-                    {profileForm.formState.errors.last_name && (
-                      <p className="text-sm text-red-600">{profileForm.formState.errors.last_name.message}</p>
-                    )}
-                  </div>
-
-                  {/* Телефон */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Телефон</label>
-                    <input
-                      type="tel"
-                      placeholder="+7XXXXXXXXXX"
-                      className={`block w-full px-3 py-2 border rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 ${profileForm.formState.errors.phone ? 'border-red-300' : 'border-gray-300 hover:border-green-300'}`}
-                      {...profileForm.register('phone')}
-                    />
-                    {profileForm.formState.errors.phone && (
-                      <p className="text-sm text-red-600">{profileForm.formState.errors.phone.message}</p>
-                    )}
-                  </div>
-
-                  {/* Email */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                    <input
-                      type="email"
-                      placeholder="example@mail.com"
-                      className={`block w-full px-3 py-2 border rounded-lg shadow-sm transition-all duration-200 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 ${profileForm.formState.errors.email ? 'border-red-300' : 'border-gray-300 hover:border-green-300'}`}
-                      {...profileForm.register('email')}
-                    />
-                    {profileForm.formState.errors.email && (
-                      <p className="text-sm text-red-600">{profileForm.formState.errors.email.message}</p>
-                    )}
-                  </div>
-
-                  {/* Кнопка сохранения профиля */}
-                  <button
-                    type="submit"
-                    disabled={!profileForm.formState.isDirty || saving}
-                    className={`w-full h-10 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center ${profileForm.formState.isDirty ? 'bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white shadow-lg' : 'bg-green-100 text-green-600 cursor-not-allowed'} disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2`}
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Сохраняем...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4 mr-2" />
-                        {profileForm.formState.isDirty ? 'Сохранить профиль' : 'Нет изменений'}
-                      </>
-                    )}
-                  </button>
-                </form>
+                {/* Форма */}
+                <ProfileForm
+                  profileData={profileData}
+                  colorScheme="green"
+                  onUpdate={handleProfileUpdate}
+                />
               </div>
             </div>
 
-            {/* Улучшенная форма автомобиля */}
-            <VehicleFormSection
+            {/* Автомобиль */}
+            <VehicleManager
               vehicleData={vehicleData}
-              onSave={handleVehicleSave}
-              onDelete={handleVehicleDelete}
-              onPhotoUpload={handleVehiclePhotoUpload}
-              saving={savingVehicle}
-              deleting={deletingVehicle}
-              uploadingPhoto={uploadingCarPhoto}
-              carPhoto={carPhoto}
+              onUpdate={handleVehicleUpdate}
             />
           </div>
 
-          {/* Боковая панель (упрощена) */}
+          {/* Статистика */}
           <div className="space-y-6">
-            {/* Статистика водителя */}
             <div className="bg-white rounded-xl border border-green-200 shadow-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <Star className="w-5 h-5 mr-2 text-yellow-500" />
@@ -467,7 +162,6 @@ function DriverProfileContent() {
               </div>
             </div>
 
-            {/* Маршруты */}
             <div className="bg-white rounded-xl border border-green-200 shadow-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <MapPin className="w-5 h-5 mr-2 text-green-600" />

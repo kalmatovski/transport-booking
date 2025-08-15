@@ -50,8 +50,8 @@ function RegisterPage() {
         const { access, refresh, user } = loginResponse.data;
         
         login(user, access, refresh);
-        
-        notify.success('Добро пожаловать в Б и б и к а!');
+
+        notify.success('Добро пожаловать в Бибика!');
         router.push('/');
         
       } catch (loginError) {
@@ -261,27 +261,6 @@ function RegisterPage() {
                 {errors.email && (
                   <p className="text-white/90 text-sm bg-red-500/20 px-3 py-1 rounded-lg">
                     {errors.email.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Выбор роли */}
-              <div className="space-y-2">
-                <label className="block text-white/90 text-sm font-medium mb-2">
-                  Тип пользователя *
-                </label>
-                <div className="relative">
-                  <select
-                    className="w-full px-4 py-3 bg-white/40 backdrop-blur-sm border border-white/50 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-white/70 focus:border-white/70 focus:bg-white/50 transition-all duration-200"
-                    {...register('role')}
-                  >
-                    <option value="passenger">🚗 Пассажир</option>
-                    <option value="driver">🚙 Водитель</option>
-                  </select>
-                </div>
-                {errors.role && (
-                  <p className="text-white/90 text-sm bg-red-500/20 px-3 py-1 rounded-lg">
-                    {errors.role.message}
                   </p>
                 )}
               </div>

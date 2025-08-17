@@ -4,19 +4,21 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '../store/authStore';
 import { LoadingSpinner } from './ui';
+import { useIsHydrated } from '../hooks/useIsHydrated';
 
 export const withAuth = (WrappedComponent) => {
   const AuthWrapper = (props) => {
-    const { isAuthenticated, isLoading } = useAuthStore();
+    const { isAuthenticated } = useAuthStore();
     const router = useRouter();
+    const isHydrated = useIsHydrated();
 
     useEffect(() => {
-      if (!isLoading && !isAuthenticated) {
+      if (isHydrated && !isAuthenticated) {
         router.push('/login');
       }
-    }, [isAuthenticated, isLoading, router]);
+    }, [isAuthenticated, isHydrated, router]);
 
-    if (isLoading) {
+    if (!isHydrated) {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <LoadingSpinner size="lg" />
@@ -38,16 +40,17 @@ export const withAuth = (WrappedComponent) => {
 
 export const withGuest = (WrappedComponent) => {
   const GuestWrapper = (props) => {
-    const { isAuthenticated, isLoading } = useAuthStore();
+    const { isAuthenticated } = useAuthStore();
     const router = useRouter();
+    const isHydrated = useIsHydrated();
 
     useEffect(() => {
-      if (!isLoading && isAuthenticated) {
+      if (isHydrated && isAuthenticated) {
         router.push('/');
       }
-    }, [isAuthenticated, isLoading, router]);
+    }, [isAuthenticated, isHydrated, router]);
 
-    if (isLoading) {
+    if (!isHydrated) {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <LoadingSpinner size="lg" />

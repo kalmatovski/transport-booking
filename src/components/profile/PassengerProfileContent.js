@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, Loader2, XCircle } from 'lucide-react';
+import { Calendar, Loader2, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { authAPI, bookingAPI } from '../../lib/api';
 import { useAuthStore } from '../../store/authStore';
@@ -22,6 +22,10 @@ function PassengerProfileContent() {
   const [selectedBookingForRating, setSelectedBookingForRating] = useState(null);
   const [error, setError] = useState(null);
   const [ratedTrips, setRatedTrips] = useState(new Set());
+  
+  // Пагинация
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const { 
     data: bookings, 
@@ -33,6 +37,28 @@ function PassengerProfileContent() {
     select: (data) => data.data || [],
     enabled: !!user?.id,
   });
+
+  // Вычисляем пагинацию
+  const paginatedData = useMemo(() => {
+    if (!bookings || bookings.length === 0) return { items: [], totalPages: 0 };
+    
+    const totalPages = Math.ceil(bookings.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const items = bookings.slice(startIndex, endIndex);
+    
+    return { items, totalPages };
+  }, [bookings, currentPage, itemsPerPage]);
+
+  // Сброс на первую страницу при изменении данных
+  useEffect(() => {
+    if (bookings && bookings.length > 0) {
+      const maxPage = Math.ceil(bookings.length / itemsPerPage);
+      if (currentPage > maxPage) {
+        setCurrentPage(1);
+      }
+    }
+  }, [bookings, currentPage, itemsPerPage]);
 
   const loadProfile = useCallback(async () => {
     try {
@@ -54,6 +80,19 @@ function PassengerProfileContent() {
   const handleRatingSuccess = (tripId) => {
     setRatedTrips(prev => new Set([...prev, tripId]));
     setSelectedBookingForRating(null);
+  };
+
+  // Функции пагинации
+  const goToPage = (page) => {
+    setCurrentPage(Math.max(1, Math.min(page, paginatedData.totalPages)));
+  };
+
+  const goToPreviousPage = () => {
+    goToPage(currentPage - 1);
+  };
+
+  const goToNextPage = () => {
+    goToPage(currentPage + 1);
   };
 
   // Загружаем профиль при монтировании
@@ -139,10 +178,17 @@ function PassengerProfileContent() {
             {/* Брони */}
             <div className="bg-white rounded-xl border border-yellow-200 shadow-lg overflow-hidden">
               <div className="px-6 py-4 bg-gradient-to-r from-yellow-50 to-amber-100 border-b border-yellow-200">
-                <h3 className="text-lg font-semibold text-yellow-900 flex items-center">
-                  <Calendar className="w-5 h-5 mr-2" />
-                  Мои брони
-                </h3>
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-yellow-900 flex items-center">
+                    <Calendar className="w-5 h-5 mr-2" />
+                    Мои брони
+                  </h3>
+                  {bookings && bookings.length > 0 && (
+                    <span className="text-sm text-yellow-700">
+                      Всего: {bookings.length}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="p-6">
                 {bookingsLoading ? (
@@ -168,18 +214,95 @@ function PassengerProfileContent() {
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {bookings.map((booking) => (
-                      <BookingCard
-                        key={booking.id}
-                        booking={booking}
-                        userId={user?.id}
-                        ratedTrips={ratedTrips}
-                        onRate={setSelectedBookingForRating}
-                        onRatingSuccess={handleRatingSuccess}
-                      />
-                    ))}
-                  </div>
+                  <>
+                    <div className="space-y-4">
+                      {paginatedData.items.map((booking) => (
+                        <BookingCard
+                          key={booking.id}
+                          booking={booking}
+                          userId={user?.id}
+                          ratedTrips={ratedTrips}
+                          onRate={setSelectedBookingForRating}
+                          onRatingSuccess={handleRatingSuccess}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Пагинация */}
+                    {paginatedData.totalPages > 1 && (
+                      <div className="mt-6">
+                        {/* Информация для мобильных */}
+                        <div className="sm:hidden text-center text-sm text-gray-600 mb-4">
+                          Страница {currentPage} из {paginatedData.totalPages}
+                        </div>
+                        
+                        {/* Информация для десктопа */}
+                        <div className="hidden sm:flex items-center justify-between mb-4">
+                          <div className="text-sm text-gray-600">
+                            Показано {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, bookings.length)} из {bookings.length} броней
+                          </div>
+                        </div>
+                        
+                        {/* Кнопки навигации */}
+                        <div className="flex items-center justify-between sm:justify-center sm:space-x-4">
+                          <button
+                            onClick={goToPreviousPage}
+                            disabled={currentPage <= 1}
+                            className="flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500"
+                          >
+                            <ChevronLeft className="w-4 h-4 mr-1" />
+                            <span className="hidden sm:inline">Назад</span>
+                          </button>
+                          
+                          {/* Номера страниц только для десктопа */}
+                          <div className="hidden sm:flex items-center space-x-1">
+                            {Array.from({ length: Math.min(paginatedData.totalPages, 7) }, (_, i) => {
+                              let page;
+                              if (paginatedData.totalPages <= 7) {
+                                page = i + 1;
+                              } else {
+                                if (currentPage <= 4) {
+                                  page = i + 1;
+                                } else if (currentPage >= paginatedData.totalPages - 3) {
+                                  page = paginatedData.totalPages - 6 + i;
+                                } else {
+                                  page = currentPage - 3 + i;
+                                }
+                              }
+                              
+                              return (
+                                <button
+                                  key={page}
+                                  onClick={() => goToPage(page)}
+                                  className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                                    currentPage === page
+                                      ? 'bg-yellow-600 text-white'
+                                      : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 hover:text-gray-700'
+                                  }`}
+                                >
+                                  {page}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          
+                          {/* Индикатор текущей страницы для мобильных */}
+                          <div className="sm:hidden text-sm text-gray-500 bg-gray-100 px-3 py-2 rounded-lg">
+                            {currentPage} / {paginatedData.totalPages}
+                          </div>
+                          
+                          <button
+                            onClick={goToNextPage}
+                            disabled={currentPage >= paginatedData.totalPages}
+                            className="flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-gray-500"
+                          >
+                            <span className="hidden sm:inline">Вперед</span>
+                            <ChevronRight className="w-4 h-4 ml-1" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

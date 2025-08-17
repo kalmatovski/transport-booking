@@ -17,6 +17,7 @@ import {
 
 import { useAuthStore } from '../../store/authStore';
 import { ridesAPI, routesAPI, vehiclesAPI } from '../../lib/api';
+import { queryKeys } from '../../lib/queryConfig';
 import { Button, Card, CardContent, Alert, LoadingSpinner } from '../../components/ui';
 import { notify } from '../../lib/notify';
 
@@ -38,13 +39,13 @@ export default function CreateTripPage() {
   const [errors, setErrors] = useState({});
 
   const { data: routes = [], isLoading: routesLoading } = useQuery({
-    queryKey: ['routes'],
+    queryKey: queryKeys.routes,
     queryFn: routesAPI.getAllRoutes,
     select: (data) => data?.data || data || [],
   });
 
   const { data: vehicles = [], isLoading: vehiclesLoading } = useQuery({
-    queryKey: ['my-vehicles'],
+    queryKey: queryKeys.myVehicles(user?.id),
     queryFn: vehiclesAPI.getMyVehicles,
     select: (data) => data?.data || data || [],
     enabled: isAuthenticated && user?.role === 'driver',
@@ -53,8 +54,8 @@ export default function CreateTripPage() {
   const createTripMutation = useMutation({
     mutationFn: ridesAPI.createTrip,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['myTrips', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['available-trips'] });
+  queryClient.invalidateQueries({ queryKey: queryKeys.myTrips(user?.id) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.trips });
       notify.success('Поездка успешно создана! Пассажиры могут забронировать места');
       router.push('/');
     },

@@ -41,20 +41,29 @@ export const queryKeys = {
   users: ['users'],
   user: (id) => ['users', id],
   profile: ['profile'],
-  
+
+  // Trips
   trips: ['trips'],
   availableTrips: (routeId, date) => ['trips', 'available', { routeId, date }],
-  myTrips: ['trips', 'my'],
+  myTrips: (userId) => ['trips', 'my', userId],
   trip: (id) => ['trips', id],
-  
+
+  // Routes
   routes: ['routes'],
   route: (id) => ['routes', id],
-  
+
+  // Vehicles
   vehicles: ['vehicles'],
-  myVehicles: ['vehicles', 'my'],
+  myVehicles: (userId) => ['vehicles', 'my', userId],
   vehicle: (id) => ['vehicles', id],
-  
+
+  // Bookings
   bookings: ['bookings'],
-  myBookings: ['bookings', 'my'],
+  myBookings: (userId) => ['bookings', 'my', userId],
+  myBookingForTrip: (tripId) => ['bookings', 'my', 'trip', tripId],
   booking: (id) => ['bookings', id],
+
+  // Drivers
+  driver: (id) => ['driver', id],
+  driverRating: (id) => ['driverRating', id],
 };

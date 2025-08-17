@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { ridesAPI } from '../lib/api';
+import { queryKeys } from '../lib/queryConfig';
 
 export function useTrips(selectedRoute, selectedDate, isEnabled = true) {
   return useQuery({
-    queryKey: ['available-trips', selectedRoute, selectedDate],
+  queryKey: queryKeys.availableTrips(selectedRoute, selectedDate),
     queryFn: () => ridesAPI.getAvailableTrips(selectedRoute, selectedDate),
     select: (data) => {
       const trips = data?.data || [];
@@ -14,8 +15,10 @@ export function useTrips(selectedRoute, selectedDate, isEnabled = true) {
       });
     },
     enabled: isEnabled,
-    staleTime: 5 * 60 * 1000, // 🚀 Кешируем на 5 минут
-    cacheTime: 10 * 60 * 1000, // 🚀 Храним в кеше 10 минут
-    refetchOnWindowFocus: false, // 🚀 Не перезагружаем при фокусе
+    // Убираем кэширование
+    staleTime: 0,
+    cacheTime: 0,
+    refetchOnWindowFocus: false,
+    refetchOnMount: true,
   });
 }

@@ -2,6 +2,12 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+Project specifics:
+
+- Environment variables: copy `.env.example` to `.env.local` and adjust `NEXT_PUBLIC_API_URL`.
+- Run backend at `http://127.0.0.1:8000` (media allowed in `next.config.mjs`).
+- Tech stack: Next.js App Router, React Query v5, Tailwind v4, Zustand, Axios.
+
 First, run the development server:
 
 ```bash
@@ -18,7 +24,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) and Tailwind.
 
 ## Learn More
 

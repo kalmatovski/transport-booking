@@ -18,11 +18,13 @@ import {
 
 import { useAuthStore } from '../../../store/authStore';
 import { ridesAPI, bookingAPI } from '../../../lib/api';
+import { queryKeys } from '../../../lib/queryConfig';
 import { Button, Card, CardContent, Alert, LoadingSpinner } from '../../../components/ui';
 import { withAuth } from '../../../components/withAuth';
 import { DriverInfo } from '../../../components/DriverInfo';
 import { DriverRating } from '../../../components/DriverRating';
 import { notify } from '../../../lib/notify';
+import { formatDateTime as formatDateTimeUtil } from '../../../lib/datetime';
 
 function BookingPage() {
   const router = useRouter();
@@ -44,7 +46,7 @@ function BookingPage() {
     isLoading: tripLoading,
     error: tripError 
   } = useQuery({
-    queryKey: ['trip', tripId],
+    queryKey: queryKeys.trip(tripId),
     queryFn: () => ridesAPI.getTrip(tripId),
     select: (data) => data.data,
     enabled: !!tripId,
@@ -55,7 +57,7 @@ function BookingPage() {
     data: existingBooking, 
     isLoading: bookingLoading 
   } = useQuery({
-    queryKey: ['my-booking-for-trip', tripId],
+    queryKey: queryKeys.myBookingForTrip(tripId),
     queryFn: () => bookingAPI.getMyBookingForTrip(tripId),
     select: (data) => data.data,
     enabled: !!tripId,
@@ -66,9 +68,9 @@ function BookingPage() {
     mutationFn: bookingAPI.createBooking,
     onSuccess: (response) => {
       // Обновляем кэш поездок
-      queryClient.invalidateQueries({ queryKey: ['available-trips'] });
-      queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-      queryClient.invalidateQueries({ queryKey: ['my-booking-for-trip', tripId] });
+  queryClient.invalidateQueries({ queryKey: queryKeys.trips });
+  queryClient.invalidateQueries({ queryKey: queryKeys.trip(tripId) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.myBookingForTrip(tripId) });
       
       notify.success(`Поездка забронирована! Количество мест: ${seatsToBook}`);
       // Переходим на страницу успеха или профиль
@@ -102,9 +104,9 @@ function BookingPage() {
     mutationFn: ({ bookingId, data }) => bookingAPI.updateBooking(bookingId, data),
     onSuccess: (response) => {
       // Обновляем кэш
-      queryClient.invalidateQueries({ queryKey: ['available-trips'] });
-      queryClient.invalidateQueries({ queryKey: ['trip', tripId] });
-      queryClient.invalidateQueries({ queryKey: ['my-booking-for-trip', tripId] });
+  queryClient.invalidateQueries({ queryKey: queryKeys.trips });
+  queryClient.invalidateQueries({ queryKey: queryKeys.trip(tripId) });
+  queryClient.invalidateQueries({ queryKey: queryKeys.myBookingForTrip(tripId) });
       
       notify.success('Бронирование успешно обновлено!');
       // Переходим на страницу успеха
@@ -185,21 +187,7 @@ function BookingPage() {
     }
   };
 
-  const formatDateTime = (dateTimeString) => {
-    if (!dateTimeString) return '';
-    const date = new Date(dateTimeString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    if (date.toDateString() === today.toDateString()) {
-      return `Сегодня, ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return `Завтра, ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
-    } else {
-      return `${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}, ${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}`;
-    }
-  };
+  const formatDateTime = (dateTimeString) => formatDateTimeUtil(dateTimeString);
 
   const totalPrice = trip ? parseFloat(trip.price) * seatsToBook : 0;
   const existingBookingPrice = (existingBooking && existingBooking.status !== 'cancelled') 
@@ -266,73 +254,24 @@ function BookingPage() {
       </header>
 
       {/* Основной контент */}
-      <main className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
-        <div className="flex flex-col lg:grid xl:grid-cols-5 lg:grid-cols-3 gap-4 sm:gap-6">
+      <main className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-4 lg:py-8">
+        <div className="flex flex-col lg:grid xl:grid-cols-5 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
           {/* Информация о поездке */}
-          <div className="xl:col-span-3 lg:col-span-2 space-y-6 order-2 lg:order-1">
-            {/* Маршрут и время */}
-            <Card className="bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl">
-              <CardContent className="p-6">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-6">
-                  <div className="mb-4 sm:mb-0">
-                    <h2 className="text-xl sm:text-2xl font-bold text-slate-800 flex items-center">
-                      <MapPin className="w-5 h-5 sm:w-6 sm:h-6 mr-2 sm:mr-3 text-blue-600" />
-                      <span className="break-words">{trip.route?.from_city || 'Неизвестно'} → {trip.route?.to_city || 'Неизвестно'}</span>
-                    </h2>
-                    {trip.route?.distance_km && (
-                      <p className="text-slate-600 ml-7 sm:ml-9 text-sm sm:text-base">Расстояние: {trip.route.distance_km} км</p>
-                    )}
-                  </div>
-                  <div className="text-center sm:text-right">
-                    <div className="text-2xl sm:text-3xl font-bold text-blue-600">
-                      {parseFloat(trip.price).toLocaleString('ru-RU')} ₽
-                    </div>
-                    <div className="text-sm text-slate-600">за место</div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:grid sm:grid-cols-2 gap-6">
-                  {/* Время отправления */}
-                  <div className="flex items-center space-x-3">
-                    <div className="bg-gradient-to-br from-blue-100 to-indigo-200 p-3 rounded-xl">
-                      <Clock className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-800">Отправление</p>
-                      <p className="text-slate-600">{formatDateTime(trip.departure_time)}</p>
-                    </div>
-                  </div>
-
-                  {/* Время прибытия */}
-                  {trip.arrival_time && (
-                    <div className="flex items-center space-x-3">
-                      <div className="bg-gradient-to-br from-blue-100 to-indigo-200 p-3 rounded-xl">
-                        <MapPin className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-800">Прибытие</p>
-                        <p className="text-slate-600">{formatDateTime(trip.arrival_time)}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
+          <div className="xl:col-span-3 lg:col-span-2 space-y-3 sm:space-y-4 lg:space-y-6 order-2 lg:order-1">
             {/* Информация о водителе и автомобиле */}
             <Card className="bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-bold text-slate-800 mb-6">Водитель и автомобиль</h3>
+              <CardContent className="p-3 sm:p-4 lg:p-6">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-3 sm:mb-4 lg:mb-6">Водитель и автомобиль</h3>
                 
-                <div className="flex flex-col sm:grid sm:grid-cols-2 gap-6">
+                <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4 sm:gap-6">
                   {/* Информация о водителе */}
                   <div>
-                    <h4 className="font-semibold text-slate-800 mb-3">Водитель</h4>
-                    <div className="space-y-2">
+                    <h4 className="font-semibold text-slate-800 mb-2 sm:mb-3">Водитель</h4>
+                    <div className="space-y-1.5 sm:space-y-2">
                       <DriverInfo driverId={trip.driver} />
                       <DriverRating driverId={trip.driver} showLabel={true} size="sm" />
                       <Button variant="outline" size="sm" className="w-full">
-                        <Phone className="w-4 h-4 mr-2" />
+                        <Phone className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         Связаться
                       </Button>
                     </div>
@@ -340,8 +279,8 @@ function BookingPage() {
 
                   {/* Информация об автомобиле */}
                   <div>
-                    <h4 className="font-semibold text-slate-800 mb-3">Автомобиль</h4>
-                    <div className="space-y-2">
+                    <h4 className="font-semibold text-slate-800 mb-2 sm:mb-3">Автомобиль</h4>
+                    <div className="space-y-1.5 sm:space-y-2">
                       <p className="text-slate-700 font-medium">
                         {trip.car?.brand || 'Неизвестно'} {trip.car?.model || ''}
                       </p>
@@ -352,8 +291,8 @@ function BookingPage() {
                         <p className="text-slate-600">Цвет: {trip.car.color}</p>
                       )}
                       <div className="flex items-center space-x-2">
-                        <Users className="w-4 h-4 text-slate-500" />
-                        <span className="text-sm text-slate-600">
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4 text-slate-500" />
+                        <span className="text-xs sm:text-sm text-slate-600">
                           Свободно мест: {trip.available_seats}
                         </span>
                       </div>
@@ -363,9 +302,9 @@ function BookingPage() {
 
                 {/* Примечания */}
                 {trip.notes && (
-                  <div className="mt-6 p-4 bg-blue-50/50 rounded-xl border border-blue-200/50">
-                    <h4 className="font-semibold text-slate-800 mb-2">Примечания водителя</h4>
-                    <p className="text-slate-700">{trip.notes}</p>
+                  <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-blue-50/50 rounded-xl border border-blue-200/50">
+                    <h4 className="font-semibold text-slate-800 mb-1 sm:mb-2">Примечания водителя</h4>
+                    <p className="text-sm text-slate-700">{trip.notes}</p>
                   </div>
                 )}
               </CardContent>
@@ -375,11 +314,11 @@ function BookingPage() {
           {/* Информация о бронировании */}
           <div className="xl:col-span-2 lg:col-span-1 order-1 lg:order-2">
             <Card className="bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl lg:sticky lg:top-24">
-              <CardContent className="p-6">
+              <CardContent className="p-3 sm:p-4 lg:p-6">
                 {/* Детали бронирования */}
-                <div className="mb-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl border border-blue-200/50">
-                  <h4 className="font-semibold text-slate-800 mb-3 flex items-center">
-                    <CreditCard className="w-4 h-4 mr-2 text-blue-600" />
+                <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl border border-blue-200/50">
+                  <h4 className="font-semibold text-slate-800 mb-2 sm:mb-3 flex items-center">
+                    <CreditCard className="w-3 h-3 sm:w-4 sm:h-4 mr-2 text-blue-600" />
                     Детали бронирования
                   </h4>
                   
@@ -405,15 +344,15 @@ function BookingPage() {
                   ) : (
                     <>
                       {/* Форма бронирования для новых бронирований */}
-                      <div className="space-y-4">
+                      <div className="space-y-3 sm:space-y-4">
                         <div>
-                          <label className="text-sm font-semibold text-slate-700 mb-2 block">
+                          <label className="text-xs sm:text-sm font-semibold text-slate-700 mb-1.5 sm:mb-2 block">
                             Количество мест для бронирования:
                           </label>
                           <select
                             value={seatsToBook}
                             onChange={(e) => setSeatsToBook(Number(e.target.value))}
-                            className="w-full px-3 py-2 bg-white border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-2.5 sm:px-3 py-1.5 sm:py-2 bg-white border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                           >
                             {Array.from({ length: Math.min(trip.available_seats, 8) }, (_, i) => i + 1).map(num => (
                               <option key={num} value={num}>{num}</option>
@@ -435,7 +374,7 @@ function BookingPage() {
                           </span>
                         </div>
                         
-                        <div className="mt-4">
+                        <div className="mt-3 sm:mt-4">
                           <label className="flex items-center space-x-2">
                             <input
                               type="checkbox"
@@ -443,7 +382,7 @@ function BookingPage() {
                               onChange={(e) => setAgreeToTerms(e.target.checked)}
                               className="rounded border-blue-300 text-blue-600 focus:ring-blue-500"
                             />
-                            <span className="text-sm text-slate-600">
+                            <span className="text-xs sm:text-sm text-slate-600">
                               Я согласен с условиями бронирования
                             </span>
                           </label>
@@ -455,10 +394,10 @@ function BookingPage() {
 
                 {/* Действия */}
                 {existingBooking && existingBooking.status !== 'cancelled' ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     <Button
                       onClick={() => router.push('/profile')}
-                      className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 py-3 text-sm sm:text-base"
+                      className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 py-2 sm:py-3 text-sm"
                     >
                       Мои бронирования
                     </Button>
@@ -467,18 +406,18 @@ function BookingPage() {
                       <Button
                         onClick={() => handleCancelBooking(existingBooking.id)}
                         variant="outline"
-                        className="w-full border-red-300 text-red-700 hover:bg-red-50 text-sm sm:text-base"
+                        className="w-full border-red-300 text-red-700 hover:bg-red-50 text-sm"
                       >
                         Отменить бронирование
                       </Button>
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     <Button
                       onClick={handleBooking}
                       disabled={!agreeToTerms || trip.available_seats < seatsToBook || bookingMutation.isPending}
-                      className={`w-full shadow-lg hover:shadow-xl transition-all duration-200 py-3 text-sm sm:text-base ${
+                      className={`w-full shadow-lg hover:shadow-xl transition-all duration-200 py-2 sm:py-3 text-sm ${
                         agreeToTerms && trip.available_seats >= seatsToBook && !bookingMutation.isPending
                           ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -497,7 +436,7 @@ function BookingPage() {
                     <Button
                       onClick={() => router.push('/')}
                       variant="outline"
-                      className="w-full text-sm sm:text-base"
+                      className="w-full text-sm"
                     >
                       Вернуться к поиску
                     </Button>
@@ -531,7 +470,7 @@ function BookingPage() {
                   </Alert>
                 )}
 
-                <p className="text-xs text-slate-500 text-center mt-4">
+                <p className="text-xs text-slate-500 text-center mt-3 sm:mt-4">
                   {existingBooking && existingBooking.status !== 'cancelled' 
                     ? 'Свяжитесь с водителем для уточнения деталей' 
                     : 'Информация о выбранной поездке'}

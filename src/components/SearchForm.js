@@ -45,17 +45,6 @@ export function SearchForm({
             ))}
           </select>
         </div>
-
-        {/* Кнопка поиска */}
-        <div className="flex items-end">
-          <Button
-            onClick={onSearch}
-            className="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 py-3 flex items-center justify-center"
-          >
-            <Search className="w-4 h-4 mr-2" />
-            Найти
-          </Button>
-        </div>
       </div>
     </div>
   );

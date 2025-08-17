@@ -2,10 +2,11 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { authAPI } from '../lib/api';
+import { queryKeys } from '../lib/queryConfig';
 
 export function DriverInfo({ driverId }) {
   const { data: driver, isLoading, error } = useQuery({
-    queryKey: ['driver', driverId],
+    queryKey: queryKeys.driver(driverId),
     queryFn: () => authAPI.getUser(driverId),
     select: (data) => data.data,
     enabled: !!driverId,

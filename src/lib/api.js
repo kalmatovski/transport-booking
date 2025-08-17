@@ -1,4 +1,4 @@
-import axios, { all } from 'axios';
+import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
 const api = axios.create({
@@ -8,6 +8,13 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// SSR-safe redirect helper
+function redirectToLogin() {
+  if (typeof window !== 'undefined') {
+    window.location.href = '/login';
+  }
+}
 
 api.interceptors.request.use(
   (config) => {
@@ -25,39 +32,38 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const originalRequest = error.config;
-    
-    const isLoginRequest = originalRequest.url?.includes('/auth/login/');
-    const isRegisterRequest = originalRequest.url?.includes('/auth/register/');
-    
-    if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest && !isRegisterRequest) {
+    const originalRequest = error.config || {};
+    const status = error.response?.status;
+
+    const url = originalRequest.url || '';
+    const isAuthPath = url.includes('/auth/login/') || url.includes('/auth/register/') || url.includes('/auth/refresh/');
+
+    // Handle 401 with token refresh (once)
+    if (status === 401 && !originalRequest._retry && !isAuthPath) {
       originalRequest._retry = true;
-      
       try {
         const refreshToken = useAuthStore.getState().getRefreshToken();
         if (refreshToken) {
-          const response = await api.post('/auth/refresh/', {
-            refresh: refreshToken
-          });
-          
+          const response = await api.post('/auth/refresh/', { refresh: refreshToken });
           const newAccessToken = response.data.access;
           useAuthStore.getState().updateTokens(newAccessToken, refreshToken);
-          
+          originalRequest.headers = originalRequest.headers || {};
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return api(originalRequest);
         }
       } catch (refreshError) {
         useAuthStore.getState().logout();
-        window.location.href = '/login';
+        redirectToLogin();
         return Promise.reject(refreshError);
       }
     }
-    
-    if (error.response?.status === 401 && !isLoginRequest && !isRegisterRequest) {
+
+    // For other 401s (or when no refresh token)
+    if (status === 401 && !isAuthPath) {
       useAuthStore.getState().logout();
-      window.location.href = '/login';
+      redirectToLogin();
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -144,15 +150,6 @@ export const ridesAPI = {
     }
 
     return api.get(url);
-  },
-  
-  getRoutes: () => {
-    return Promise.resolve({
-      data: [
-        { id: 1, name: 'Красноярск → Абакан' },
-        { id: 2, name: 'Абакан → Красноярск' }
-      ]
-    });
   },
   
   getTrip: (tripId) => {
@@ -296,35 +293,6 @@ export const vehiclesAPI = {
 };
 
 export const routesAPI = {
-  searchRoutes: (params = {}) => {
-    const queryParams = new URLSearchParams();
-    
-    if (params.from_city) {
-      queryParams.append('from_city', params.from_city);
-    }
-    if (params.to_city) {
-      queryParams.append('to_city', params.to_city);
-    }
-    
-    return api.get(`/routes/search/?${queryParams.toString()}`);
-  },
-
-  searchRoutesWithTrips: (params = {}) => {
-    const queryParams = new URLSearchParams();
-    
-    if (params.from_city) {
-      queryParams.append('from_city', params.from_city);
-    }
-    if (params.to_city) {
-      queryParams.append('to_city', params.to_city);
-    }
-    if (params.date) {
-      queryParams.append('date', params.date);
-    }
-    
-    return api.get(`/routes/with-trips/?${queryParams.toString()}`);
-  },
-
   getAllRoutes: () => {
     return api.get('/routes/');
   },

@@ -3,6 +3,7 @@
 import { Star } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ratingsAPI } from '../lib/api';
+import { queryKeys } from '../lib/queryConfig';
 
 // Умная система расчета рейтинга
 const calculateDisplayRating = (averageScore, ratingsCount) => {
@@ -50,14 +51,14 @@ export function DriverRating({ driverId, showLabel = false, size = 'sm' }) {
   const queryClient = useQueryClient();
   
   const { data: driverRating, isLoading, refetch } = useQuery({
-    queryKey: ['driverRating', driverId],
+    queryKey: queryKeys.driverRating(driverId),
     queryFn: () => driverId ? ratingsAPI.getDriverRatings(driverId) : null,
     enabled: Boolean(driverId),
-    staleTime: 0, // Данные всегда устаревшие
-    cacheTime: 0, // Не кешируем вообще
-    refetchOnMount: true, // Всегда перезагружать при монтировании
-    refetchOnWindowFocus: true, // Перезагружать при фокусе
-    refetchOnReconnect: true, // Перезагружать при переподключении
+    staleTime: 60 * 1000, // 1 минута свежести
+    cacheTime: 5 * 60 * 1000, // 5 минут кэша
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
   });
 
   const sizeClasses = {

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { ridesAPI } from '../lib/api';
+import { queryKeys } from '../lib/queryConfig';
 import { Clock, Users, MapPin, Phone, DollarSign, Calendar, Plus, CheckCircle, Play, RefreshCw } from 'lucide-react';
 import { Button } from './ui';
 import { useAuthStore } from '../store/authStore';
@@ -33,7 +34,7 @@ export function DriverTrips() {
   });
   
   const { data: trips, isLoading, error, refetch } = useQuery({
-    queryKey: ['myTrips', user?.id],
+    queryKey: queryKeys.myTrips(user?.id),
     queryFn: () => ridesAPI.getMyTrips(),
     select: (data) => data.data,
     enabled: !!user?.id,
@@ -48,7 +49,7 @@ export function DriverTrips() {
     mutationFn: ({ tripId, status }) => ridesAPI.updateTripStatus(tripId, status),
     onSuccess: (response, { status, tripId }) => {
       // Инвалидируем и обновляем кэш
-      queryClient.invalidateQueries(['myTrips', user?.id]);
+      queryClient.invalidateQueries({ queryKey: queryKeys.myTrips(user?.id) });
       refetch();
       
       if (status === 'in_road') {

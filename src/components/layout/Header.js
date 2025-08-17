@@ -47,9 +47,6 @@ export function Header() {
                   filter: 'contrast(1.2)'
                 }}
               />
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent" style={{fontFamily: 'Inter, system-ui, sans-serif', letterSpacing: '-0.025em'}}>
-              Б и б и к а 
-            </span>
           </div>
 
           {/* Навигация */}
@@ -107,7 +104,7 @@ export function Header() {
 
         {/* Мобильное меню */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-blue-200/50 bg-white/90 backdrop-blur-md py-4">
+          <div className="md:hidden absolute left-0 right-0 top-full border-t border-blue-200/50 bg-white/95 backdrop-blur-md py-4 shadow-lg z-40">
             <div className="space-y-2">
               {isAuthenticated ? (
                 <>

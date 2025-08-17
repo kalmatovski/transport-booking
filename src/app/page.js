@@ -2,23 +2,18 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Clock,
-  Phone,
-  MessageCircle,
-  Star
-} from 'lucide-react';
+// Icons were previously used in this page; keeping UI minimal now.
 
 import { useAuthStore } from '../store/authStore';
 import { useIsHydrated } from '../hooks/useIsHydrated';
 import { Button, Alert, LoadingSpinner } from '../components/ui';
-import { DriverInfo } from '../components/DriverInfo';
 import { DriverTrips } from '../components/DriverTrips';
 import { AppLayout } from '../components/layout/AppLayout';
 import { WelcomeBanner } from '../components/WelcomeBanner';
 import { SearchForm } from '../components/SearchForm';
 import { ridesAPI } from '../lib/api';
 import { TripsList } from '../components/TripsList';
+import { formatDateTime as formatDateTimeUtil } from '../lib/datetime';
 
 export default function HomePage() {
   const { user, isAuthenticated } = useAuthStore();
@@ -44,7 +39,8 @@ export default function HomePage() {
       const response = await ridesAPI.getAvailableTrips(selectedRoute, null);
       setAvailableTrips(response.data || []);
     } catch (err) {
-      setTripsError(err.response?.data?.detail || err.message || 'Ошибка загрузки поездок');
+  const message = err?.response?.data?.detail || err?.message || 'Ошибка загрузки поездок';
+  setTripsError({ message });
     } finally {
       setTripsLoading(false);
     }
@@ -66,38 +62,7 @@ export default function HomePage() {
     router.push(`/booking/${trip.id}`);
   }, [isAuthenticated, router]);
 
-  const formatTime = useCallback((dateTimeString) => {
-    if (!dateTimeString) return '';
-    return new Date(dateTimeString).toLocaleTimeString('ru-RU', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  }, []);
-
-  const formatDate = useCallback((dateTimeString) => {
-    if (!dateTimeString) return '';
-    return new Date(dateTimeString).toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
-  }, []);
-
-  const formatDateTime = useCallback((dateTimeString) => {
-    if (!dateTimeString) return '';
-    const date = new Date(dateTimeString);
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    
-    if (date.toDateString() === today.toDateString()) {
-      return `Сегодня, ${formatTime(dateTimeString)}`;
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return `Завтра, ${formatTime(dateTimeString)}`;
-    } else {
-      return `${formatDate(dateTimeString)}, ${formatTime(dateTimeString)}`;
-    }
-  }, [formatTime, formatDate]);
+  const formatDateTime = useCallback((dateTimeString) => formatDateTimeUtil(dateTimeString), []);
 
   const getStatusColor = useCallback((status) => {
     switch (status) {

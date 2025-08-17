@@ -93,7 +93,7 @@ export default function HomePage() {
   // Не показываем содержимое до гидратации
   if (!isHydrated) {
     return (
-      <AppLayout>
+      <AppLayout showMinimalHeader={true}>
         <div className="flex items-center justify-center h-96">
           <LoadingSpinner size="lg" />
         </div>
@@ -102,7 +102,7 @@ export default function HomePage() {
   }
 
   return (
-    <AppLayout>
+    <AppLayout showMinimalHeader={!isAuthenticated}>
       {/* Основной контент */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         

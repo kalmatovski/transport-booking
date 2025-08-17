@@ -24,9 +24,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="ru" suppressHydrationWarning={true}>
-      <body className={inter.className}>
+      <body className={`${inter.className} overflow-x-hidden`}>
         <QueryProvider>
-          <div className="min-h-screen bg-gray-50">
+          <div className="min-h-screen bg-gray-50 w-full overflow-x-hidden">
             {children}
           </div>
           <ToastContainer

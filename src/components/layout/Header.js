@@ -104,7 +104,7 @@ export function Header() {
 
         {/* Мобильное меню */}
         {mobileMenuOpen && (
-          <div className="md:hidden absolute left-0 right-0 top-full border-t border-blue-200/50 bg-white/95 backdrop-blur-md py-4 shadow-lg z-40">
+          <div className="md:hidden border-t border-blue-200/50 bg-white/90 backdrop-blur-md py-4">
             <div className="space-y-2">
               {isAuthenticated ? (
                 <>

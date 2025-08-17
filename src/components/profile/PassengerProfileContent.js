@@ -124,7 +124,7 @@ function PassengerProfileContent() {
         onBack={() => router.push('/')}
       />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full max-w-4xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 overflow-hidden">
         {error && (
           <NotificationBanner 
             type="error" 
@@ -133,33 +133,33 @@ function PassengerProfileContent() {
           />
         )}
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-4 lg:gap-8">
           {/* Основная информация */}
           <div className="lg:col-span-2 space-y-8">
             
             {/* Профиль */}
-            <div className="bg-white rounded-xl border border-yellow-200 shadow-lg overflow-hidden">
-              <div className="px-6 py-4 bg-gradient-to-r from-yellow-400 to-amber-500 text-white">
-                <h2 className="text-xl font-semibold">Личная информация</h2>
+            <div className="w-full bg-white rounded-xl border border-yellow-200 shadow-lg overflow-hidden">
+              <div className="px-3 sm:px-6 py-4 bg-gradient-to-r from-yellow-400 to-amber-500 text-white">
+                <h2 className="text-lg sm:text-xl font-semibold">Личная информация</h2>
                 <p className="text-white/80 text-sm">Ваши персональные данные</p>
               </div>
               
-              <div className="p-6">
+              <div className="p-3 sm:p-6">
                 {/* Аватар и основная информация */}
-                <div className="flex items-center space-x-6 mb-6">
+                <div className="flex flex-col sm:flex-row items-center sm:space-x-6 space-y-4 sm:space-y-0 mb-6">
                   <ProfileAvatar 
                     profileData={profileData}
                     colorScheme="yellow"
                     onUpdate={loadProfile}
                   />
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">
+                  <div className="text-center sm:text-left">
+                    <h3 className="text-lg font-medium text-gray-900 break-words">
                       {profileData?.first_name && profileData?.last_name 
                         ? `${profileData.first_name} ${profileData.last_name}`
                         : profileData?.username || 'Имя не указано'
                       }
                     </h3>
-                    <p className="text-sm text-gray-600">{profileData?.phone || 'Телефон не указан'}</p>
+                    <p className="text-sm text-gray-600 break-all">{profileData?.phone || 'Телефон не указан'}</p>
                     <span className="inline-block mt-1 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
                       Пассажир
                     </span>
@@ -176,8 +176,8 @@ function PassengerProfileContent() {
             </div>
 
             {/* Брони */}
-            <div className="bg-white rounded-xl border border-yellow-200 shadow-lg overflow-hidden">
-              <div className="px-6 py-4 bg-gradient-to-r from-yellow-50 to-amber-100 border-b border-yellow-200">
+            <div className="w-full bg-white rounded-xl border border-yellow-200 shadow-lg overflow-hidden">
+              <div className="px-3 sm:px-6 py-4 bg-gradient-to-r from-yellow-50 to-amber-100 border-b border-yellow-200">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-semibold text-yellow-900 flex items-center">
                     <Calendar className="w-5 h-5 mr-2" />
@@ -190,7 +190,7 @@ function PassengerProfileContent() {
                   )}
                 </div>
               </div>
-              <div className="p-6">
+              <div className="p-3 sm:p-6">
                 {bookingsLoading ? (
                   <div className="text-center py-8">
                     <Loader2 className="w-8 h-8 mx-auto text-yellow-600 animate-spin mb-4" />
@@ -200,7 +200,7 @@ function PassengerProfileContent() {
                   <div className="text-center py-8">
                     <XCircle className="w-12 h-12 mx-auto text-red-400 mb-4" />
                     <p className="text-red-600">Ошибка загрузки броней</p>
-                    <p className="text-gray-500 text-sm mt-1">{bookingsError.message}</p>
+                    <p className="text-gray-500 text-sm mt-1 break-words">{bookingsError.message}</p>
                   </div>
                 ) : !bookings || bookings.length === 0 ? (
                   <div className="text-center py-8">
@@ -309,8 +309,8 @@ function PassengerProfileContent() {
           </div>
 
           {/* Статистика */}
-          <div className="space-y-6">
-            <div className="bg-white rounded-xl border border-yellow-200 shadow-lg p-6">
+          <div className="w-full space-y-6">
+            <div className="w-full bg-white rounded-xl border border-yellow-200 shadow-lg p-3 sm:p-6 overflow-hidden">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Статистика</h3>
               <ProfileStats bookings={bookings} />
             </div>

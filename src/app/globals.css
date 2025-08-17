@@ -4,10 +4,17 @@
 @layer base {
   html {
     font-family: system-ui, sans-serif;
+    overflow-x: hidden;
   }
   
   body {
     @apply antialiased;
+    overflow-x: hidden;
+    width: 100%;
+  }
+  
+  * {
+    box-sizing: border-box;
   }
 }
 

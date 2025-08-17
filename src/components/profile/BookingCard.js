@@ -55,11 +55,11 @@ export function BookingCard({
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:border-yellow-300 transition-colors">
+    <div className="w-full border border-gray-200 rounded-lg p-3 sm:p-4 hover:border-yellow-300 transition-colors overflow-hidden">
       {/* Заголовок */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <div className="flex items-center space-x-2 mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-3 space-y-2 sm:space-y-0">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}>
               <StatusIcon className="w-4 h-4" />
               <span className="ml-1">{statusConfig.text}</span>
@@ -70,29 +70,31 @@ export function BookingCard({
           {/* Детали поездки */}
           {booking.trip_details && (
             <div className="space-y-2">
-              <div className="flex items-center text-gray-700">
-                <MapPin className="w-4 h-4 mr-2 text-gray-500" />
-                <span className="font-medium">
+              <div className="flex items-start text-gray-700">
+                <MapPin className="w-4 h-4 mr-2 mt-0.5 text-gray-500 flex-shrink-0" />
+                <span className="font-medium break-words">
                   {booking.trip_details.route?.from_city || 'Неизвестно'} → {booking.trip_details.route?.to_city || 'Неизвестно'}
                 </span>
               </div>
               
-              <div className="flex items-center text-gray-600">
-                <Clock className="w-4 h-4 mr-2 text-gray-500" />
-                <span>{formatDateTime(booking.trip_details.departure_time)}</span>
+              <div className="flex items-start text-gray-600">
+                <Clock className="w-4 h-4 mr-2 mt-0.5 text-gray-500 flex-shrink-0" />
+                <span className="break-words">{formatDateTime(booking.trip_details.departure_time)}</span>
               </div>
 
               <div className="flex items-center text-gray-600">
-                <Users className="w-4 h-4 mr-2 text-gray-500" />
+                <Users className="w-4 h-4 mr-2 text-gray-500 flex-shrink-0" />
                 <span>{booking.seats_reserved} {getSeatText(booking.seats_reserved)}</span>
               </div>
 
               {booking.trip_details.car && (
-                <div className="flex items-center text-gray-600">
-                  <Car className="w-4 h-4 mr-2 text-gray-500" />
-                  <span>{booking.trip_details.car.brand} {booking.trip_details.car.model}</span>
+                <div className="flex flex-wrap items-center gap-2 text-gray-600">
+                  <div className="flex items-center">
+                    <Car className="w-4 h-4 mr-2 text-gray-500 flex-shrink-0" />
+                    <span className="break-words">{booking.trip_details.car.brand} {booking.trip_details.car.model}</span>
+                  </div>
                   {booking.trip_details.car.plate_number && (
-                    <span className="ml-2 px-2 py-1 bg-gray-100 rounded text-xs font-mono">
+                    <span className="px-2 py-1 bg-gray-100 rounded text-xs font-mono">
                       {booking.trip_details.car.plate_number}
                     </span>
                   )}
@@ -103,8 +105,8 @@ export function BookingCard({
         </div>
 
         {/* Цена */}
-        <div className="text-right ml-4">
-          <div className="text-xl font-bold text-gray-900">
+        <div className="text-center sm:text-right sm:ml-4 flex-shrink-0">
+          <div className="text-lg sm:text-xl font-bold text-gray-900">
             {calculateTotalPrice()} ₽
           </div>
           <div className="text-sm text-gray-500">
@@ -114,8 +116,8 @@ export function BookingCard({
       </div>
 
       {/* Нижняя часть */}
-      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-        <div className="text-sm text-gray-500">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-3 border-t border-gray-100 space-y-2 sm:space-y-0">
+        <div className="text-sm text-gray-500 break-words">
           Забронировано: {new Date(booking.created_at).toLocaleDateString('ru-RU', { 
             day: 'numeric', 
             month: 'short', 
@@ -126,7 +128,7 @@ export function BookingCard({
         </div>
 
         {/* Кнопки действий */}
-        <div className="flex space-x-2">
+        <div className="flex flex-wrap gap-2">
           {booking.status === 'pending' && (
             <button
               onClick={handleCancelBooking}

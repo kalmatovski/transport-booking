@@ -2,11 +2,26 @@ version: "3.8"
 
 services:
   transport-booking-frontend:
-    build: .
-    ports:
-      - "3000:3000"
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    expose:
+      - "3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=https://bibika-backend.pp.ua/api
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
     restart: unless-stopped
     container_name: transport-booking-app
+  caddy:
+    image: caddy:2
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "./Caddyfile:/etc/caddy/Caddyfile"
+    depends_on:
+      - transport-booking-frontend
+

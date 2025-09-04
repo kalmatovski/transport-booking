@@ -14,6 +14,8 @@ services:
       - HOSTNAME=0.0.0.0
     restart: unless-stopped
     container_name: transport-booking-app
+    env_file:
+      - .env
   caddy:
     image: caddy:2
     restart: always

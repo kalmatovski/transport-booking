@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { updateProfileSchema } from '../../lib/validationSchemas';
 import { authAPI } from '../../lib/api';
 import { notify } from '../../lib/notify';
+import { normalizeImageUrl } from '../../lib/imageLoader';
 
 // Аватар профиля с загрузкой
 export function ProfileAvatar({ profileData, colorScheme = 'yellow', onUpdate }) {
@@ -51,7 +52,7 @@ export function ProfileAvatar({ profileData, colorScheme = 'yellow', onUpdate })
     }
   };
 
-  const avatarUrl = profileData?.avatar ? `http://127.0.0.1:8000${profileData.avatar}` : null;
+  const avatarUrl = profileData?.avatar ? normalizeImageUrl(`http://127.0.0.1:8000${profileData.avatar}`) : null;
   const initials = profileData?.first_name?.[0] || profileData?.username?.[0] || 'U';
 
   return (

@@ -5,8 +5,10 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 Project specifics:
 
 - Environment variables: copy `.env.example` to `.env.local` and adjust `NEXT_PUBLIC_API_URL`.
-- Run backend at `http://127.0.0.1:8000` (media allowed in `next.config.mjs`).
+- Backend API: `https://bibika-backend.pp.ua/api`
 - Tech stack: Next.js App Router, React Query v5, Tailwind v4, Zustand, Axios.
+
+### Development
 
 First, run the development server:
 
@@ -21,6 +23,43 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+### Docker Deployment
+
+#### Build and run with Docker:
+
+```bash
+# Build the Docker image
+npm run docker:build
+
+# Run the container
+npm run docker:run
+```
+
+#### Using Docker Compose (recommended):
+
+```bash
+# Build and start the container
+npm run docker:compose:up
+
+# Stop the container
+npm run docker:compose:down
+```
+
+#### Manual Docker commands:
+
+```bash
+# Build image
+docker build -t transport-booking-frontend .
+
+# Run container
+docker run -p 3000:3000 -e NEXT_PUBLIC_API_URL=https://bibika-backend.pp.ua/api transport-booking-frontend
+
+# Run with Docker Compose
+docker-compose up --build -d
+```
+
+The application will be available at [http://localhost:3000](http://localhost:3000)
 
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 

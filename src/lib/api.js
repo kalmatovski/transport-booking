@@ -1,18 +1,18 @@
-import axios from 'axios';
-import { useAuthStore } from '../store/authStore';
+import axios from "axios";
+import { useAuthStore } from "../store/authStore";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 // SSR-safe redirect helper
 function redirectToLogin() {
-  if (typeof window !== 'undefined') {
-    window.location.href = '/login';
+  if (typeof window !== "undefined") {
+    window.location.href = "/login";
   }
 }
 
@@ -35,8 +35,11 @@ api.interceptors.response.use(
     const originalRequest = error.config || {};
     const status = error.response?.status;
 
-    const url = originalRequest.url || '';
-    const isAuthPath = url.includes('/auth/login/') || url.includes('/auth/register/') || url.includes('/auth/refresh/');
+    const url = originalRequest.url || "";
+    const isAuthPath =
+      url.includes("/auth/login/") ||
+      url.includes("/auth/register/") ||
+      url.includes("/auth/refresh/");
 
     // Handle 401 with token refresh (once)
     if (status === 401 && !originalRequest._retry && !isAuthPath) {
@@ -44,7 +47,9 @@ api.interceptors.response.use(
       try {
         const refreshToken = useAuthStore.getState().getRefreshToken();
         if (refreshToken) {
-          const response = await api.post('/auth/refresh/', { refresh: refreshToken });
+          const response = await api.post("/auth/refresh/", {
+            refresh: refreshToken,
+          });
           const newAccessToken = response.data.access;
           useAuthStore.getState().updateTokens(newAccessToken, refreshToken);
           originalRequest.headers = originalRequest.headers || {};
@@ -70,57 +75,57 @@ api.interceptors.response.use(
 
 export const authAPI = {
   login: (data) => {
-    return api.post('/auth/login/', {
+    return api.post("/auth/login/", {
       username: data.username,
-      password: data.password
+      password: data.password,
     });
   },
-  
+
   register: (data) => {
-    return api.post('/auth/register/', {
+    return api.post("/auth/register/", {
       username: data.username,
       password: data.password,
       role: data.role,
       phone: data.phone,
-      first_name: data.first_name || '',
-      last_name: data.last_name || '',
-      email: data.email || '',
+      first_name: data.first_name || "",
+      last_name: data.last_name || "",
+      email: data.email || "",
     });
   },
-  
+
   refreshToken: (refreshToken) => {
-    return api.post('/auth/refresh/', {
-      refresh: refreshToken
+    return api.post("/auth/refresh/", {
+      refresh: refreshToken,
     });
   },
-  
+
   getProfile: () => {
-    return api.get('/auth/me/');
+    return api.get("/auth/me/");
   },
-  
-    updateProfile: (data) => {
+
+  updateProfile: (data) => {
     const formData = new FormData();
-    
-    Object.keys(data).forEach(key => {
-      if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
+
+    Object.keys(data).forEach((key) => {
+      if (data[key] !== null && data[key] !== undefined && data[key] !== "") {
         formData.append(key, data[key]);
       }
     });
-    
-    return api.patch('/auth/me/', formData, {
+
+    return api.patch("/auth/me/", formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
   },
 
   updateAvatar: (file) => {
     const formData = new FormData();
-    formData.append('avatar', file);
-    
-    return api.patch('/auth/me/', formData, {
+    formData.append("avatar", file);
+
+    return api.patch("/auth/me/", formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
   },
@@ -132,11 +137,11 @@ export const authAPI = {
 
 export const ridesAPI = {
   getAvailableTrips: (routeId, date) => {
-    let url = '/trips/';
+    let url = "/trips/";
     const params = [];
-    
-    params.push('status=available');
-    
+
+    params.push("status=available");
+
     if (routeId) {
       params.push(`route=${routeId}`);
     }
@@ -146,26 +151,26 @@ export const ridesAPI = {
     }
 
     if (params.length > 0) {
-      url += '?' + params.join('&');
+      url += "?" + params.join("&");
     }
 
     return api.get(url);
   },
-  
+
   getTrip: (tripId) => {
     return api.get(`/trips/${tripId}/`);
   },
-  
+
   createTrip: (data) => {
-    return api.post('/trips/', data);
+    return api.post("/trips/", data);
   },
-  
+
   updateTripStatus: (tripId, status) => {
     return api.patch(`/trips/${tripId}/`, { status });
   },
 
   getMyTrips: () => {
-    return api.get('/trips/my/');
+    return api.get("/trips/my/");
   },
 };
 
@@ -173,59 +178,63 @@ export const bookingAPI = {
   createBooking: (data) => {
     const requestData = {
       trip: data.tripId,
-      seats_reserved: data.seatsReserved
+      seats_reserved: data.seatsReserved,
     };
-    return api.post('/bookings/', requestData);
+    return api.post("/bookings/", requestData);
   },
-  
+
   getMyBookings: () => {
-    return api.get('/bookings/').then(response => {
+    return api.get("/bookings/").then((response) => {
       return response;
     });
   },
-  
+
   getBooking: (bookingId) => {
     return api.get(`/bookings/${bookingId}/`);
   },
-  
+
   getMyBookingForTrip: (tripId) => {
-    return api.get(`/bookings/`).then(response => {
+    return api.get(`/bookings/`).then((response) => {
       const bookings = response.data || [];
-      const tripBooking = bookings.find(booking => booking.trip === parseInt(tripId));
+      const tripBooking = bookings.find(
+        (booking) => booking.trip === parseInt(tripId)
+      );
       return { data: tripBooking || null };
     });
   },
-  
+
   cancelBooking: (bookingId) => {
-    return api.patch(`/bookings/${bookingId}/`, { status: 'cancelled' });
+    return api.patch(`/bookings/${bookingId}/`, { status: "cancelled" });
   },
-  
+
   updateBooking: (bookingId, data) => {
     return api.patch(`/bookings/${bookingId}/`, {
-      seats_reserved: data.seatsReserved || data.seats_reserved
+      seats_reserved: data.seatsReserved || data.seats_reserved,
     });
   },
 };
 
 export const vehiclesAPI = {
   getAllVehicles: () => {
-    return api.get('/vehicles/');
+    return api.get("/vehicles/");
   },
 
   getMyVehicles: () => {
-    return api.get('/vehicles/');
+    return api.get("/vehicles/");
   },
 
   getMyVehicle: async () => {
     try {
-      const profileResponse = await api.get('/auth/me/');
+      const profileResponse = await api.get("/auth/me/");
       const myUserId = profileResponse.data.id;
-      
-      const vehiclesResponse = await api.get('/vehicles/');
+
+      const vehiclesResponse = await api.get("/vehicles/");
       const allVehicles = vehiclesResponse.data;
-      
-      const myVehicle = allVehicles.find(vehicle => vehicle.owner === myUserId);
-      
+
+      const myVehicle = allVehicles.find(
+        (vehicle) => vehicle.owner === myUserId
+      );
+
       if (myVehicle) {
         return { data: myVehicle };
       } else {
@@ -238,51 +247,51 @@ export const vehiclesAPI = {
 
   createVehicle: (data) => {
     const formData = new FormData();
-    
-    Object.keys(data).forEach(key => {
-      if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
-        if (key === 'vehicle_image' && data[key] instanceof File) {
+
+    Object.keys(data).forEach((key) => {
+      if (data[key] !== null && data[key] !== undefined && data[key] !== "") {
+        if (key === "vehicle_image" && data[key] instanceof File) {
           formData.append(key, data[key]);
-        } else if (key !== 'vehicle_image') {
+        } else if (key !== "vehicle_image") {
           formData.append(key, data[key]);
         }
       }
     });
-    
-    return api.post('/vehicles/', formData, {
+
+    return api.post("/vehicles/", formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
   },
 
   updateVehicle: (vehicleId, data) => {
     const formData = new FormData();
-    
-    Object.keys(data).forEach(key => {
-      if (data[key] !== null && data[key] !== undefined && data[key] !== '') {
-        if (key === 'vehicle_image' && data[key] instanceof File) {
+
+    Object.keys(data).forEach((key) => {
+      if (data[key] !== null && data[key] !== undefined && data[key] !== "") {
+        if (key === "vehicle_image" && data[key] instanceof File) {
           formData.append(key, data[key]);
-        } else if (key !== 'vehicle_image') {
+        } else if (key !== "vehicle_image") {
           formData.append(key, data[key]);
         }
       }
     });
-    
+
     return api.patch(`/vehicles/${vehicleId}/`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
   },
 
   updateVehiclePhoto: (vehicleId, file) => {
     const formData = new FormData();
-    formData.append('vehicle_image', file); // ИСПРАВЛЕНО: vehicle_image вместо photo
-    
+    formData.append("vehicle_image", file); // ИСПРАВЛЕНО: vehicle_image вместо photo
+
     return api.patch(`/vehicles/${vehicleId}/`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
     });
   },
@@ -294,21 +303,21 @@ export const vehiclesAPI = {
 
 export const routesAPI = {
   getAllRoutes: () => {
-    return api.get('/routes/');
+    return api.get("/routes/");
   },
 
   createRoute: (routeData) => {
-    return api.post('/routes/', routeData);
+    return api.post("/routes/", routeData);
   },
 };
 
 export const ratingsAPI = {
   createRating: (ratingData) => {
-    return api.post('/ratings/', {
+    return api.post("/ratings/", {
       trip: ratingData.trip,
       driver: ratingData.driver,
       score: ratingData.score,
-      comment: ratingData.comment || ''
+      comment: ratingData.comment || "",
     });
   },
 
@@ -317,4 +326,4 @@ export const ratingsAPI = {
   },
 };
 
-export default api; 
+export default api;

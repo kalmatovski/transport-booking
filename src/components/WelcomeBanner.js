@@ -9,7 +9,7 @@ export function WelcomeBanner() {
   const router = useRouter();
 
   return (
-    <div className="text-center py-2 lg:py-4 flex justify-center items-center min-h-fit relative">
+    <div className="text-center py-2 lg:py-4 flex justify-center items-center min-h-fit relative md:mt-0 mt-20">
       <div className="bg-white/60 backdrop-blur-lg rounded-2xl md:rounded-3xl p-4 md:p-8 lg:p-12 mb-4 md:mb-8 border border-white/40 shadow-2xl relative overflow-hidden w-full max-w-5xl mx-auto z-0">
         {/* Декоративные элементы */}
         <div className="absolute top-0 left-0 w-full h-full opacity-10">

@@ -1,21 +1,26 @@
-'use client';
+"use client";
 
-import { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Star, MapPin, Loader2 } from 'lucide-react';
-import { DriverRating } from '../DriverRating';
+import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Star, MapPin, Loader2 } from "lucide-react";
+import { DriverRating } from "../DriverRating";
 
-import { authAPI, vehiclesAPI, ridesAPI } from '../../lib/api';
-import { useAuthStore } from '../../store/authStore';
+import { authAPI, vehiclesAPI, ridesAPI } from "../../lib/api";
+import { useAuthStore } from "../../store/authStore";
 
-import { LoadingState, ErrorState, ProfileHeader, NotificationBanner } from './ProfileStates';
-import { ProfileAvatar, ProfileForm, DriverStats } from './ProfileComponents';
-import { VehicleManager } from './VehicleManager';
+import {
+  LoadingState,
+  ErrorState,
+  ProfileHeader,
+  NotificationBanner,
+} from "./ProfileStates";
+import { ProfileAvatar, ProfileForm, DriverStats } from "./ProfileComponents";
+import { VehicleManager } from "./VehicleManager";
 
 function DriverProfileContent() {
   const router = useRouter();
   const { user } = useAuthStore();
-  
+
   const [profileData, setProfileData] = useState(null);
   const [vehicleData, setVehicleData] = useState(null);
   const [tripsCount, setTripsCount] = useState(0);
@@ -27,15 +32,16 @@ function DriverProfileContent() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const profileResponse = await authAPI.getProfile();
       setProfileData(profileResponse.data);
-      
+
       // Загружаем автомобили
       try {
         const vehiclesResponse = await vehiclesAPI.getMyVehicles();
         const myVehicles = vehiclesResponse.data;
-        const myVehicle = myVehicles && myVehicles.length > 0 ? myVehicles[0] : null;
+        const myVehicle =
+          myVehicles && myVehicles.length > 0 ? myVehicles[0] : null;
         setVehicleData(myVehicle);
       } catch (vehicleError) {
         // Игнорируем ошибки загрузки автомобиля
@@ -52,16 +58,17 @@ function DriverProfileContent() {
       } finally {
         setTripsLoading(false);
       }
-      
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'Ошибка загрузки профиля');
+      setError(
+        err.response?.data?.detail || err.message || "Ошибка загрузки профиля"
+      );
     } finally {
       setLoading(false);
     }
   }, []);
 
   const handleProfileUpdate = (updatedData) => {
-    setProfileData(prev => ({ ...prev, ...updatedData }));
+    setProfileData((prev) => ({ ...prev, ...updatedData }));
   };
 
   const handleVehicleUpdate = (vehicleInfo) => {
@@ -73,33 +80,38 @@ function DriverProfileContent() {
   }, [loadProfile]);
 
   if (loading) {
-    return <LoadingState colorScheme="green" message="Загружаем профиль водителя..." />;
+    return (
+      <LoadingState
+        colorScheme="green"
+        message="Загружаем профиль водителя..."
+      />
+    );
   }
 
   if (error && !profileData) {
     return (
-      <ErrorState 
+      <ErrorState
         colorScheme="green"
         title="Ошибка загрузки профиля"
         error={error}
         onRetry={loadProfile}
-        onGoHome={() => router.push('/')}
+        onGoHome={() => router.push("/")}
       />
     );
   }
 
   return (
     <>
-      <ProfileHeader 
+      <ProfileHeader
         colorScheme="green"
         title="Профиль водителя"
-        onBack={() => router.push('/')}
+        onBack={() => router.push("/")}
       />
 
       <div className="w-full max-w-4xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 overflow-hidden">
         {error && (
-          <NotificationBanner 
-            type="error" 
+          <NotificationBanner
+            type="error"
             message={error}
             onClose={() => setError(null)}
           />
@@ -108,30 +120,34 @@ function DriverProfileContent() {
         <div className="grid lg:grid-cols-3 gap-4 lg:gap-8">
           {/* Основная информация */}
           <div className="lg:col-span-2 space-y-8">
-            
             {/* Профиль */}
             <div className="w-full bg-white rounded-xl border border-green-200 shadow-lg overflow-hidden">
               <div className="px-3 sm:px-6 py-4 bg-gradient-to-r from-green-400 to-emerald-500 text-white">
-                <h2 className="text-lg sm:text-xl font-semibold">Личная информация</h2>
-                <p className="text-white/80 text-sm">Ваши персональные данные</p>
+                <h2 className="text-lg sm:text-xl font-semibold">
+                  Личная информация
+                </h2>
+                <p className="text-white/80 text-sm">
+                  Ваши персональные данные
+                </p>
               </div>
-              
+
               <div className="p-3 sm:p-6">
                 {/* Аватар и основная информация */}
                 <div className="flex flex-col sm:flex-row items-center sm:space-x-6 space-y-4 sm:space-y-0 mb-6">
-                  <ProfileAvatar 
+                  <ProfileAvatar
                     profileData={profileData}
                     colorScheme="green"
                     onUpdate={loadProfile}
                   />
                   <div className="text-center sm:text-left">
                     <h3 className="text-lg font-medium text-gray-900 break-words">
-                      {profileData?.first_name && profileData?.last_name 
+                      {profileData?.first_name && profileData?.last_name
                         ? `${profileData.first_name} ${profileData.last_name}`
-                        : profileData?.username || 'Имя не указано'
-                      }
+                        : profileData?.username || "Имя не указано"}
                     </h3>
-                    <p className="text-sm text-gray-600 break-all">{profileData?.phone || 'Телефон не указан'}</p>
+                    <p className="text-sm text-gray-600 break-all">
+                      {profileData?.phone || "Телефон не указан"}
+                    </p>
                     <span className="inline-block mt-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
                       Водитель
                     </span>
@@ -172,7 +188,11 @@ function DriverProfileContent() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Рейтинг:</span>
-                  <DriverRating driverId={profileData?.id} showLabel={false} size="sm" />
+                  <DriverRating
+                    driverId={profileData?.id}
+                    showLabel={false}
+                    size="sm"
+                  />
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Статус:</span>

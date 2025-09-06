@@ -180,17 +180,6 @@ function DriverProfileContent() {
                 </div>
               </div>
             </div>
-
-            <div className="w-full bg-white rounded-xl border border-green-200 shadow-lg p-3 sm:p-6 overflow-hidden">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                <MapPin className="w-5 h-5 mr-2 text-green-600" />
-                Мои маршруты
-              </h3>
-              <div className="text-center py-4">
-                <p className="text-gray-600 text-sm">Маршруты назначает администратор</p>
-                <p className="text-gray-500 text-xs mt-1">Обратитесь к админу для добавления маршрутов</p>
-              </div>
-            </div>
           </div>
         </div>
       </div>

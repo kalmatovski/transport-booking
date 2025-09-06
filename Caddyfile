@@ -1,0 +1,3 @@
+biibiika.pp.ua {
+    reverse_proxy http://transport-booking-frontend:3000
+}

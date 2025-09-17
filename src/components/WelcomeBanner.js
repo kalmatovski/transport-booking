@@ -1,12 +1,14 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import useTgRouter from '@/lib/useTgRouter';
+
 import Image from 'next/image';
 import { Car, Users, MapPin, DollarSign, UserPlus, User } from 'lucide-react';
 import { Button } from './ui';
 
 export function WelcomeBanner() {
-  const router = useRouter();
+  const router = useTgRouter();
 
   return (
     <div className="text-center py-2 lg:py-4 flex justify-center items-center min-h-fit relative md:mt-0 mt-20">

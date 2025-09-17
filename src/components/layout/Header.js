@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import useTgRouter from '@/lib/useTgRouter';
 import Image from 'next/image';
 import { 
   Car, 
@@ -18,7 +19,7 @@ import { notify } from '../../lib/notify';
 
 export function Header() {
   const { user, isAuthenticated, logout } = useAuthStore();
-  const router = useRouter();
+  const router = useTgRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = useCallback(() => {

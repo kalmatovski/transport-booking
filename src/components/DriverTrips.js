@@ -2,6 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import useTgRouter from '@/lib/useTgRouter';
+
 import { useCallback, useMemo, useState } from "react";
 import { ridesAPI } from "../lib/api";
 import { queryKeys } from "../lib/queryConfig";
@@ -25,7 +27,7 @@ import { FinishTripModal } from "./FinishTripModal";
 import { notify } from "../lib/notify";
 
 export function DriverTrips() {
-  const router = useRouter();
+  const router = useTgRouter();
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const isHydrated = useIsHydrated();

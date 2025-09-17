@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import useTgRouter from '@/lib/useTgRouter';
+
 import { useAuthStore } from '../store/authStore';
 import { LoadingSpinner } from './ui';
 import { useIsHydrated } from '../hooks/useIsHydrated';
@@ -9,7 +11,7 @@ import { useIsHydrated } from '../hooks/useIsHydrated';
 export const withAuth = (WrappedComponent) => {
   const AuthWrapper = (props) => {
     const { isAuthenticated } = useAuthStore();
-    const router = useRouter();
+    const router = useTgRouter();
     const isHydrated = useIsHydrated();
 
     useEffect(() => {

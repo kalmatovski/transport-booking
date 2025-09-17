@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Star, MapPin, Loader2 } from "lucide-react";
 import { DriverRating } from "../DriverRating";
-
+import useTgRouter from '@/lib/useTgRouter';
 import { authAPI, vehiclesAPI, ridesAPI } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
 
@@ -18,7 +18,7 @@ import { ProfileAvatar, ProfileForm, DriverStats } from "./ProfileComponents";
 import { VehicleManager } from "./VehicleManager";
 
 function DriverProfileContent() {
-  const router = useRouter();
+  const router = useTgRouter();
   const { user } = useAuthStore();
 
   const [profileData, setProfileData] = useState(null);

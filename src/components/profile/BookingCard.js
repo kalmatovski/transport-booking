@@ -7,6 +7,8 @@ import { getStatusConfig, formatDateTime } from './ProfileComponents';
 import { bookingAPI } from '../../lib/api';
 import { notify } from '../../lib/notify';
 import { useQueryClient } from '@tanstack/react-query';
+import useTgRouter from '@/lib/useTgRouter';
+
 
 export function BookingCard({ 
   booking, 
@@ -15,7 +17,7 @@ export function BookingCard({
   onRate, 
   onRatingSuccess 
 }) {
-  const router = useRouter();
+  const router = useTgRouter();
   const queryClient = useQueryClient();
   const [cancelling, setCancelling] = useState(false);
 

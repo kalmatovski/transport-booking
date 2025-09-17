@@ -13,8 +13,10 @@ import { LoadingState, ErrorState, ProfileHeader, NotificationBanner } from './P
 import { ProfileAvatar, ProfileForm, ProfileStats } from './ProfileComponents';
 import { BookingCard } from './BookingCard';
 
+import useTgRouter from '@/lib/useTgRouter';
+
 function PassengerProfileContent() {
-  const router = useRouter();
+  const router = useTgRouter();
   const { user } = useAuthStore();
   
   const [profileData, setProfileData] = useState(null);

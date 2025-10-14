@@ -24,6 +24,7 @@ import { authAPI } from "../../lib/api";
 import { notify } from "../../lib/notify";
 import { normalizeImageUrl } from "../../lib/imageLoader";
 
+
 // Аватар профиля с загрузкой
 export function ProfileAvatar({
   profileData,

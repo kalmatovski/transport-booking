@@ -9,6 +9,11 @@ const nextConfig = {
         pathname: "/media/**",
       },
       {
+        protocol: "https",
+        hostname: "biibiika.online",
+        pathname: "/media/**",
+      },
+      {
         protocol: "http",
         hostname: "127.0.0.1",
         port: "8000",

@@ -4,8 +4,8 @@ export function normalizeImageUrl(url) {
 
   // Replace old localhost URLs with new production URLs
   return url
-    .replace("http://127.0.0.1:8000", "https://biibiika.online/media/avatars")
-    .replace("http://localhost:8000", "https://biibiika.online/media/avatars");
+    .replace("http://127.0.0.1:8000", "https://biibiika.online")
+    .replace("http://localhost:8000", "https://biibiika.online");
 }
 
 // Default export for Next.js custom loader (if needed)

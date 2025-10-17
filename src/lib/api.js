@@ -80,6 +80,9 @@ export const authAPI = {
       password: data.password,
     });
   },
+  loginTelegram: (data) => {
+    return api.post("/auth/telegram/",data)
+  },
 
   register: (data) => {
     return api.post("/auth/register/", {

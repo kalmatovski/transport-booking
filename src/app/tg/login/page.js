@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import Script from 'next/script';
 import { useRouter } from 'next/navigation';
-
 import { useAuthStore } from '@/store/authStore';
 import { notify } from '@/lib/notify';
 import { authAPI } from '@/lib/api';
@@ -35,18 +34,18 @@ export default function TgLoginPage() {
 
         login(user, access, refresh);
         notify.success('Вход через Telegram выполнен!');
-        router.replace('/'); // куда отправлять после входа
+        router.replace('/'); // переход только при успехе
       } catch (e) {
         const msg =
           e?.response?.data?.detail ||
           (e?.response?.data?.non_field_errors && e.response.data.non_field_errors[0]) ||
-          'Не удалось войти через Telegram';
+          'Не удалось войти через Telegram.';
         setError(msg);
+        calledRef.current = false;
       }
     };
 
-    const t = setTimeout(run, 50);
-    return () => clearTimeout(t);
+    run();
   }, [login, router]);
 
   return (
@@ -55,7 +54,7 @@ export default function TgLoginPage() {
       <div className="bg-white/20 backdrop-blur-xl p-8 rounded-2xl border border-white/30 w-full max-w-md text-white">
         <h1 className="text-2xl font-semibold mb-4">Вход через Telegram</h1>
         {!error ? (
-          <div className="opacity-80">Идёт авторизация…</div>
+          <div className="opacity-80 animate-pulse">Идёт авторизация…</div>
         ) : (
           <div className="bg-red-500/20 border border-red-400/50 rounded-lg p-3">
             {error}

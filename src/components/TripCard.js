@@ -1,170 +1,148 @@
 'use client';
-
-import { memo, useCallback } from 'react';
-import { Clock, MapPin, Users, Star, Phone, MessageCircle } from 'lucide-react';
+import React, { memo, useCallback } from 'react';
+import { MapPin, Users, Star, Phone, MessageCircle } from 'lucide-react';
 import { Card, CardContent, Button } from './ui';
 import { DriverInfo } from './DriverInfo';
 import { DriverRating } from './DriverRating';
 
-const TripCard = memo(({ 
-  trip, 
-  index, 
-  formatDateTime, 
-  getStatusColor, 
-  getStatusText, 
-  onBooking 
-}) => {
-  const handleBookingClick = useCallback(() => {
-    onBooking(trip);
-  }, [trip, onBooking]);
+const formatKGS = (v) => `${Number(v || 0).toLocaleString('ru-RU')} с`;
+const hhmm = (iso) =>
+  iso ? new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' }).format(new Date(iso)) : '--:--';
+const ddd = (iso) =>
+  iso
+    ? new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: 'short', weekday: 'short' })
+        .format(new Date(iso))
+        .replace('.', '')
+    : '';
+
+const SeatDots = ({ total = 5 }) => (
+  <div className="flex gap-2">
+    {Array.from({ length: total }).map((_, i) => (
+      <span key={i} className="inline-block h-2.5 w-2.5 rounded-full bg-slate-400/70" />
+    ))}
+  </div>
+);
+
+const TripCard = memo(({ trip, onBooking }) => {
+  const handleBookingClick = useCallback(() => onBooking(trip), [trip, onBooking]);
+  const fromCity = trip?.route?.from_city ?? '—';
+  const toCity = trip?.route?.to_city ?? '—';
+  const depTime = hhmm(trip?.departure_time);
+  const arrTime = hhmm(trip?.arrival_time);
+  const depDate = ddd(trip?.departure_time);
+  const arrDate = ddd(trip?.arrival_time);
 
   return (
-    <Card 
-      className="bg-white/70 backdrop-blur-lg border border-white/40 shadow-xl hover:shadow-2xl transition-all duration-200"
-    >
-      <CardContent className="p-8">
-        <div className="mb-6">
-          <h3 className="text-xl font-bold text-slate-800 flex items-center">
-            <div className="bg-gradient-to-br from-blue-100 to-indigo-200 p-2 rounded-xl mr-3">
-              <MapPin className="w-5 h-5 text-blue-600" />
-            </div>
-            {trip.route?.from_city || 'Неизвестно'} → {trip.route?.to_city || 'Неизвестно'}
-          </h3>
-          {trip.route?.distance_km && (
-            <p className="text-sm text-slate-600 ml-12">Расстояние: {trip.route.distance_km} км</p>
-          )}
-        </div>
-
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between">
-          {/* Информация о поездке */}
-          <div className="flex-1">
-            {/* Время и статус - адаптивная сетка */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              {/* Время отправления */}
-              <div className="flex items-center space-x-3 bg-white/30 backdrop-blur-sm rounded-xl p-3 border border-white/40">
-                <div className="bg-gradient-to-br from-blue-100 to-indigo-200 p-2 rounded-xl flex-shrink-0">
-                  <Clock className="w-4 h-4 text-blue-600" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <span className="font-semibold text-slate-800 block text-sm">
-                    Отправление
-                  </span>
-                  <p className="text-xs text-slate-600 truncate">
-                    {formatDateTime(trip.departure_time)}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Время прибытия */}
-              {trip.arrival_time && (
-                <div className="flex items-center space-x-3 bg-white/30 backdrop-blur-sm rounded-xl p-3 border border-white/40">
-                  <div className="bg-gradient-to-br from-blue-100 to-indigo-200 p-2 rounded-xl flex-shrink-0">
-                    <MapPin className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <span className="font-semibold text-slate-800 block text-sm">
-                      Прибытие
-                    </span>
-                    <p className="text-xs text-slate-600 truncate">
-                      {formatDateTime(trip.arrival_time)}
-                    </p>
-                  </div>
-                </div>
-              )}
-              
-              {/* Статус */}
-              <div className="flex items-center justify-center sm:justify-start lg:justify-center">
-                <span className={`px-3 py-2 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(trip.status)}`}>
-                  {getStatusText(trip.status)}
+    <Card className="rounded-[22px] bg-white shadow-sm ring-1 ring-slate-200 p-5 transition-all duration-200 hover:shadow-md">
+      <CardContent className="p-0">
+        {/* Верхняя часть: маршрут и время */}
+        <div className="grid grid-cols-[100px_1fr_auto] gap-4 items-center">
+          {/* Левая линия */}
+          <div className="relative">
+            <div className="absolute left-4 top-9 bottom-10 border-l-2 border-dotted border-emerald-300" />
+            <div className="flex flex-col gap-10">
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                  <MapPin className="h-4 w-4" />
                 </span>
+                <div>
+                  <div className="text-xs text-slate-500">{depDate}</div>
+                  <div className="text-[26px] font-semibold leading-none">{depTime}</div>
+                  <div className="text-slate-600">{fromCity}</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                  <MapPin className="h-4 w-4" />
+                </span>
+                <div>
+                  <div className="text-xs text-slate-500">{arrDate}</div>
+                  <div className="text-[26px] font-semibold leading-none">{arrTime}</div>
+                  <div className="text-slate-600">{toCity}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Центр */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <DriverInfo driverId={trip.driver} />
+              <div className="flex items-center gap-1 text-amber-500 text-sm">
+                <Star className="h-4 w-4" />
+                <DriverRating driverId={trip.driver} showLabel={false} size="sm" />
               </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* Водитель */}
-              <div className="bg-white/40 backdrop-blur-sm rounded-xl p-4 border border-white/50">
-                <p className="text-sm text-slate-600 mb-1">Водитель</p>
-                <DriverInfo driverId={trip.driver} />
-                <div className="mt-2">
-                  <DriverRating driverId={trip.driver} size="xs" />
-                </div>
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                <span className="text-slate-400 text-lg">🚘</span>
               </div>
-
-              {/* Автомобиль */}
-              <div className="bg-white/40 backdrop-blur-sm rounded-xl p-4 border border-white/50">
-                <p className="text-sm text-slate-600 mb-1">Автомобиль</p>
-                <p className="font-semibold text-slate-800">
-                  {trip.car?.brand || 'Неизвестно'} {trip.car?.model || ''}
-                </p>
-                <p className="text-xs text-slate-600 mt-1">
-                  {trip.car?.plate_number || 'Номер не указан'}
-                </p>
-                {trip.car?.color && (
-                  <p className="text-xs text-slate-600">
-                    Цвет: {trip.car.color}
-                  </p>
+              <div className="leading-tight">
+                <div className="text-slate-700 font-medium">{trip?.car?.brand || '—'}</div>
+                {(trip?.car?.model || trip?.car?.year) && (
+                  <div className="text-sm text-slate-500">
+                    {[trip?.car?.model, trip?.car?.year].filter(Boolean).join(', ')}
+                  </div>
                 )}
               </div>
-
-              {/* Места и цена */}
-              <div className="bg-white/40 backdrop-blur-sm rounded-xl p-4 border border-white/50">
-                <p className="text-sm text-slate-600 mb-1">Свободно мест</p>
-                <p className="font-semibold text-slate-800 flex items-center">
-                  <Users className="w-4 h-4 mr-1 text-slate-500" />
-                  {trip.available_seats}
-                </p>
-                <p className="text-xl font-bold text-blue-600 mt-2">
-                  {parseFloat(trip.price).toLocaleString('ru-RU')} ₽
-                </p>
-              </div>
             </div>
 
-            {/* Примечания */}
-            {trip.notes && (
-              <div className="mt-6 p-4 bg-blue-50/70 backdrop-blur-sm rounded-xl border border-blue-200/50">
-                <p className="text-sm text-slate-700">{trip.notes}</p>
+            <div className="flex items-center justify-between">
+              <SeatDots total={trip.available_seats || 5} />
+              <div className="flex items-center gap-1 text-slate-500 text-sm">
+                <Users className="w-4 h-4" />
+                {trip.available_seats}
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Действия */}
-          <div className="mt-6 lg:mt-0 lg:ml-8 flex flex-col space-y-3 min-w-[220px]">
-            {/* Контакты */}
-            <div className="flex space-x-2">
-              <button className="flex-1 flex items-center justify-center px-3 py-2 bg-white/40 backdrop-blur-sm border border-white/50 rounded-xl hover:bg-white/60 transition-all duration-200 text-slate-700">
-                <Phone className="w-4 h-4 mr-1" />
-                <span className="text-sm">Позвонить</span>
-              </button>
-              <button className="flex-1 flex items-center justify-center px-3 py-2 bg-white/40 backdrop-blur-sm border border-white/50 rounded-xl hover:bg-white/60 transition-all duration-200 text-slate-700">
-                <MessageCircle className="w-4 h-4 mr-1" />
-                <span className="text-sm">Написать</span>
-              </button>
+          {/* Цена */}
+          <div className="pl-2">
+            <div className="text-emerald-600 font-bold text-2xl leading-none">
+              {formatKGS(trip?.price)}
             </div>
-
-            {/* Кнопка бронирования */}
-            <Button
-              onClick={handleBookingClick}
-              disabled={trip.status !== 'available' || trip.available_seats < 1}
-              className={`w-full shadow-lg hover:shadow-xl transition-all duration-200 ${
-                trip.status === 'available' && trip.available_seats >= 1
-                  ? 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              {trip.status !== 'available' 
-                ? 'Недоступно'
-                : trip.available_seats < 1
-                ? 'Мало мест'
-                : 'Забронировать'
-              }
-            </Button>
           </div>
         </div>
+
+        {/* Примечания */}
+        {trip.notes && (
+          <div className="mt-4 bg-blue-50 p-3 rounded-xl border border-blue-100 text-sm text-slate-700">
+            {trip.notes}
+          </div>
+        )}
+
+        {/* Кнопки действий */}
+        <div className="flex flex-col sm:flex-row gap-2 mt-4">
+          <button className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 rounded-xl py-2 text-slate-700 hover:bg-slate-50 transition">
+            <Phone className="w-4 h-4" />
+            Позвонить
+          </button>
+          <button className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 rounded-xl py-2 text-slate-700 hover:bg-slate-50 transition">
+            <MessageCircle className="w-4 h-4" />
+            Написать
+          </button>
+        </div>
+
+        <Button
+          onClick={handleBookingClick}
+          disabled={trip.status !== 'available' || trip.available_seats < 1}
+          className={`w-full mt-3 shadow-sm hover:shadow-md rounded-xl py-3 font-semibold text-base transition ${
+            trip.status === 'available' && trip.available_seats >= 1
+              ? 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white'
+              : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+          }`}
+        >
+          {trip.status !== 'available'
+            ? 'Недоступно'
+            : trip.available_seats < 1
+            ? 'Мест нет'
+            : 'Забронировать'}
+        </Button>
       </CardContent>
     </Card>
   );
 });
 
 TripCard.displayName = 'TripCard';
-
 export default TripCard;

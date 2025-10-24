@@ -229,6 +229,112 @@ function BookingPage() {
     );
   }
 
+   // === helpers ===
+const formatKGS = (value) => {
+  const n = Number(value || 0);
+  return `${n.toLocaleString('ru-RU')} Р`;
+};
+
+// формат "HH:MM"
+const formatTime = (iso) =>
+  iso
+    ? new Intl.DateTimeFormat('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date(iso))
+    : '--:--';
+
+// точки-мест
+const SeatDots = ({ count }) => (
+  <div className="flex gap-2">
+    {Array.from({ length: Math.max(1, Math.min(8, count || 0)) }).map((_, i) => (
+      <span
+        key={i}
+        className="inline-block h-2.5 w-2.5 rounded-full bg-slate-400/80"
+      />
+    ))}
+  </div>
+);
+
+// === карточка ===
+function TripCardCompact({ trip }) {
+  const fromCity = trip?.route?.from_city ?? 'Неизвестно';
+  const toCity = trip?.route?.to_city ?? 'Неизвестно';
+  const depTime = formatTime(trip?.departure_time);
+  const arrTime = formatTime(trip?.arrival_time);
+
+  return (
+    <div className="rounded-2xl bg-white shadow-sm ring-1 ring-slate-100 p-5">
+      <div className="grid grid-cols-[96px_1fr_auto] gap-4 items-center">
+        {/* левая тайм-линия */}
+        <div className="relative">
+          <div className="absolute left-4 top-6 bottom-6 border-l-2 border-dotted border-slate-300" />
+          <div className="flex flex-col gap-10">
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                <MapPin className="h-4 w-4" />
+              </span>
+              <div>
+                <div className="text-3xl font-semibold leading-none">{depTime}</div>
+                <div className="text-slate-600 mt-1">{fromCity}</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                <MapPin className="h-4 w-4" />
+              </span>
+              <div>
+                <div className="text-3xl font-semibold leading-none">{arrTime}</div>
+                <div className="text-slate-600 mt-1">{toCity}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* центр: водитель + авто + места */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <DriverInfo driverId={trip.driver} />
+            <div className="flex items-center gap-1 text-amber-500 text-sm">
+              <Star className="h-4 w-4" />
+              <DriverRating driverId={trip.driver} showLabel={false} size="sm" />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 text-slate-500">
+            <span className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center">
+              <Car className="h-5 w-5" />
+            </span>
+            <div className="leading-tight">
+              <div className="text-slate-700 font-medium">
+                {trip?.car?.brand || 'Авто'}
+              </div>
+              {(trip?.car?.model || trip?.car?.year) && (
+                <div className="text-sm">
+                  {[trip?.car?.model, trip?.car?.year].filter(Boolean).join(', ')}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <SeatDots count={trip?.available_seats ?? 0} />
+        </div>
+
+        {/* цена справа зелёным */}
+        <div className="text-emerald-600 font-bold text-2xl">
+          {formatKGS(trip?.price)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+
+
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       {/* Хедер */}

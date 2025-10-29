@@ -10,26 +10,44 @@ import { authAPI } from '@/lib/api';
 export default function TgLoginPage() {
   const router = useRouter();
   const { login } = useAuthStore();
+
   const [error, setError] = useState(null);
+  const [sdkLoaded, setSdkLoaded] = useState(false);
   const calledRef = useRef(false);
+
+  // Ждём появления Telegram.WebApp и initData (поллинг с таймаутом)
+  const waitForTelegram = async (timeoutMs = 3000, stepMs = 50) => {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
+      // initDataUnsafe.user часто доступен раньше; initData — строка, может прийти с задержкой
+      if (tg && (tg.initData?.length || tg.initDataUnsafe?.user)) {
+        return tg;
+      }
+      await new Promise(r => setTimeout(r, stepMs));
+    }
+    return null;
+  };
 
   useEffect(() => {
     const run = async () => {
-      if (calledRef.current) return;
+      if (calledRef.current || !sdkLoaded) return;
       calledRef.current = true;
 
-      const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
-      if (!tg || !tg.initData) {
-        setError('Откройте страницу внутри Telegram (через кнопку бота).');
-        calledRef.current = false;
-        return;
-      }
-
       try {
+        const tg = await waitForTelegram();
+        if (!tg) {
+          setError('Откройте страницу внутри Telegram (через кнопку бота).');
+          calledRef.current = false;
+          return;
+        }
+
+        // На всякий случай .ready и .expand
         tg.ready?.();
         tg.expand?.();
 
-        const res = await authAPI.loginTelegram({ initData: tg.initData });
+        const initData = tg.initData || ''; // если вдруг пусто, бек сам проверит
+        const res = await authAPI.loginTelegram({ initData });
         const { access, refresh, user } = res.data;
 
         login(user, access, refresh);
@@ -46,11 +64,15 @@ export default function TgLoginPage() {
     };
 
     run();
-  }, [login, router]);
+  }, [sdkLoaded, login, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black/30">
-      <Script src="https://telegram.org/js/telegram-web-app.js" strategy="afterInteractive" />
+      <Script
+        src="https://telegram.org/js/telegram-web-app.js"
+        strategy="afterInteractive"
+        onLoad={() => setSdkLoaded(true)}
+      />
       <div className="bg-white/20 backdrop-blur-xl p-8 rounded-2xl border border-white/30 w-full max-w-md text-white">
         <h1 className="text-2xl font-semibold mb-4">Вход через Telegram</h1>
         {!error ? (

@@ -6,6 +6,7 @@ import {
 import { Card, CardContent, Button } from './ui';
 import { DriverInfo } from './DriverInfo';
 import { DriverRating } from './DriverRating';
+import { useDriver } from '../hooks/useDrivers';
 
 const formatKGS = (v) => `${Number(v || 0).toLocaleString('ru-RU')} с`;
 const hhmm = (iso) =>
@@ -63,6 +64,51 @@ const TripCard = memo(({ trip, onBooking }) => {
   const depDate = ddd(trip?.departure_time);
   const arrDate = ddd(trip?.arrival_time);
 
+
+// ...внутри TripCard:
+const driverId = trip?.driver;
+const { data: driver, isLoading: driverLoading } = useDriver(driverId);
+
+
+const normalizeTel = (s) => (s || '').toString().trim().replace(/[^\d+]/g, '');
+
+const phoneRaw =
+  driver?.phone ||
+  trip?.driver_phone; // если вдруг есть фолбэк в trip
+
+const tgUsernameRaw =
+  driver?.tg_contacts || driver?.username; // у тебя часто хранится username в tg_contacts
+
+const tgId = driver?.telegram_id; // если ты сохраняешь telegram_id в User
+
+const phoneTel = phoneRaw ? normalizeTel(phoneRaw) : null;
+const tgUsername = tgUsernameRaw ? tgUsernameRaw.replace(/^@/, '') : null;
+
+const hasPhone = Boolean(phoneTel);
+const hasTG = Boolean(tgUsername || tgId);
+
+const openPhone = useCallback(() => {
+  if (!hasPhone) return;
+  window.location.href = `tel:${phoneTel}`;
+}, [hasPhone, phoneTel]);
+
+const openTelegram = useCallback(() => {
+  if (!hasTG) return;
+  const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
+
+  if (tgUsername) {
+    const url = `https://t.me/${tgUsername}`;
+    if (tg?.openTelegramLink) tg.openTelegramLink(url);
+    else window.open(url, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  if (tgId) {
+    const url = `tg://user?id=${tgId}`;
+    if (tg?.openTelegramLink) tg.openTelegramLink(url);
+    else window.location.href = url;
+  }
+}, [hasTG, tgUsername, tgId]);
+
   return (
     <Card
       ref={ref}
@@ -100,8 +146,8 @@ const TripCard = memo(({ trip, onBooking }) => {
                 </div>
               </div>
 
-              {/* Центр
-              <div className="flex-1 flex flex-col gap-3 min-w-0">
+        
+              {/* <div className="flex-1 flex flex-col gap-3 min-w-0">
                 <div className="flex flex-col space-y-2 min-w-0">
                   <DriverInfo driverId={trip.driver} className="truncate" />
                   <div className="flex items-center gap-1 text-amber-500 text-sm shrink-0">
@@ -135,7 +181,7 @@ const TripCard = memo(({ trip, onBooking }) => {
                     </div>
                   </>
                 )}
-              </div> */}
+              </div>  */}
             </div>
           </div>
 
@@ -199,18 +245,38 @@ const TripCard = memo(({ trip, onBooking }) => {
           </div>
         )}
 
-        {/* Действия */}
-        <div className="flex flex-col sm:flex-row gap-2 mt-3">
-          <button className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 rounded-xl py-2 text-slate-700 hover:bg-slate-50">
-            <Phone className="w-4 h-4" />
-            <span className="truncate">Позвонить</span>
-          </button>
-          <button className="flex-1 flex items-center justify-center gap-2 bg-white border border-slate-200 rounded-xl py-2 text-slate-700 hover:bg-slate-50">
-            <MessageCircle className="w-4 h-4" />
-            <span className="truncate">Написать</span>
-          </button>
-        </div>
+          {/* Действия */}
+<div className="flex flex-col sm:flex-row gap-2 mt-3">
+  <button
+    onClick={hasPhone ? openPhone : undefined}
+    disabled={!hasPhone || driverLoading}
+    className={`flex-1 flex items-center justify-center gap-2 border rounded-xl py-2 transition ${
+      hasPhone && !driverLoading
+        ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+        : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+    }`}
+    aria-disabled={!hasPhone || driverLoading}
+    title={hasPhone ? `Позвонить ${phoneTel}` : 'Телефон не указан'}
+  >
+    <Phone className="w-4 h-4" />
+    <span className="truncate">{driverLoading ? 'Загрузка…' : 'Позвонить'}</span>
+  </button>
 
+  <button
+    onClick={hasTG ? openTelegram : undefined}
+    disabled={!hasTG || driverLoading}
+    className={`flex-1 flex items-center justify-center gap-2 border rounded-xl py-2 transition ${
+      hasTG && !driverLoading
+        ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+        : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+    }`}
+    aria-disabled={!hasTG || driverLoading}
+    title={hasTG ? 'Открыть чат в Telegram' : 'TG контакт не указан'}
+  >
+    <MessageCircle className="w-4 h-4" />
+    <span className="truncate">{driverLoading ? 'Загрузка…' : 'Написать'}</span>
+  </button>
+</div>
         <Button
           onClick={handleBookingClick}
           disabled={trip.status !== 'available' || trip.available_seats < 1}

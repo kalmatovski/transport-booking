@@ -31,7 +31,13 @@ export default function TgLoginPage() {
   };
 
   // 2) ждём появления initData до ~8 секунд
-  const waitForInitData = async (timeoutMs = 8000, stepMs = 50) => {
+  
+
+  useEffect(() => {
+    const run = async () => {
+      if (calledRef.current) return;
+      calledRef.current = true;
+      const waitForInitData = async (timeoutMs = 8000, stepMs = 50) => {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
       const raw = tryGetInitData();
@@ -40,11 +46,6 @@ export default function TgLoginPage() {
     }
     return '';
   };
-
-  useEffect(() => {
-    const run = async () => {
-      if (calledRef.current) return;
-      calledRef.current = true;
 
       try {
         // Не блокируемся на загрузке SDK — объект Telegram обычно уже доступен из webview
@@ -79,7 +80,7 @@ export default function TgLoginPage() {
     };
 
     run();
-  }, [login, router]);
+  }, [login, router,waitForInitData]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black/30">

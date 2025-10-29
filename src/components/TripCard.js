@@ -100,7 +100,7 @@ const TripCard = memo(({ trip, onBooking }) => {
                 </div>
               </div>
 
-              {/* Центр */}
+              {/* Центр
               <div className="flex-1 flex flex-col gap-3 min-w-0">
                 <div className="flex flex-col space-y-2 min-w-0">
                   <DriverInfo driverId={trip.driver} className="truncate" />
@@ -135,7 +135,7 @@ const TripCard = memo(({ trip, onBooking }) => {
                     </div>
                   </>
                 )}
-              </div>
+              </div> */}
             </div>
           </div>
 

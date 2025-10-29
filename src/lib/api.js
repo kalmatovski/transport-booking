@@ -207,7 +207,7 @@ export const bookingAPI = {
   },
 
   cancelBooking: (bookingId) => {
-    return api.patch(`/bookings/${bookingId}/`, { status: "cancelled" });
+    return api.delete(`/bookings/${bookingId}/`, { status: "cancelled" });
   },
 
   updateBooking: (bookingId, data) => {

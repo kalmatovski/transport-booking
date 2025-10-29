@@ -11,59 +11,71 @@ export default function TgLoginPage() {
   const { login } = useAuthStore();
 
   const [error, setError] = useState(null);
+  const [sdkReady, setSdkReady] = useState(false);
   const calledRef = useRef(false);
 
-  // 1) попытка получить initData из разных мест
-  const tryGetInitData = () => {
-    const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
-    if (tg?.initData && tg.initData.length > 0) {
-      return tg.initData; // самый надёжный путь
+  // ждем загрузку SDK, если он подключен через Script в layout
+  useEffect(() => {
+    // если SDK уже есть — ок
+    if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
+      setSdkReady(true);
+      return;
     }
-    // fallback: некоторые клиенты кладут initData в hash как tgWebAppData
-    const hash = typeof window !== 'undefined' ? window.location.hash : '';
-    if (hash && hash.startsWith('#')) {
+    // fallback: подождём немного появления объекта
+    const t = setInterval(() => {
+      if (window.Telegram?.WebApp) {
+        setSdkReady(true);
+        clearInterval(t);
+      }
+    }, 50);
+    const stop = setTimeout(() => clearInterval(t), 5000);
+    return () => { clearInterval(t); clearTimeout(stop); };
+  }, []);
+
+  // 1) забираем initData из WebApp
+  const tryGetInitDataRaw = () => {
+    const tg = window.Telegram?.WebApp;
+    if (tg?.initData && tg.initData.length > 0) return tg.initData;
+
+    // 2) fallback: из location.hash как ЕСТЬ (НЕ декодировать!)
+    const hash = window.location.hash || '';
+    if (hash.startsWith('#')) {
       const params = new URLSearchParams(hash.slice(1));
+      // у разных клиентов имя может отличаться
       const raw = params.get('tgWebAppData') || params.get('tgWebAppDataUrlEncoded') || '';
-      if (raw) return decodeURIComponent(raw);
+      if (raw) return raw; 
     }
     return '';
-    // при желании можно ещё смотреть tg.initDataUnsafe?.user, но для сервера нужен именно raw-строковый initData
   };
 
-  // 2) ждём появления initData до ~8 секунд
-  
+  const waitForInitData = async (timeoutMs = 8000) => {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const raw = tryGetInitDataRaw();
+      if (raw) return raw;
+      await new Promise(r => setTimeout(r, 50));
+    }
+    return '';
+  };
 
   useEffect(() => {
     const run = async () => {
-      if (calledRef.current) return;
+      if (!sdkReady || calledRef.current) return;
       calledRef.current = true;
-      const waitForInitData = async (timeoutMs = 8000, stepMs = 50) => {
-    const start = Date.now();
-    while (Date.now() - start < timeoutMs) {
-      const raw = tryGetInitData();
-      if (raw) return raw;
-      await new Promise(r => setTimeout(r, stepMs));
-    }
-    return '';
-  };
 
       try {
-        // Не блокируемся на загрузке SDK — объект Telegram обычно уже доступен из webview
         const initData = await waitForInitData();
-
         if (!initData) {
           setError('Откройте страницу внутри Telegram (через кнопку бота).');
           calledRef.current = false;
           return;
         }
 
-        // (опционально) сообщим Telegram, что всё ок
-        const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
+        const tg = window.Telegram?.WebApp;
         tg?.ready?.();
         tg?.expand?.();
 
-        // 3) логинимся на бэке — передаём именно raw initData
-        const res = await authAPI.loginTelegram({ initData });
+        const res = await authAPI.loginTelegram({ initData }); // передаём СЫРОЙ initData
         const { access, refresh, user } = res.data;
 
         login(user, access, refresh);
@@ -80,7 +92,7 @@ export default function TgLoginPage() {
     };
 
     run();
-  }, [login, router,waitForInitData]);
+  }, [sdkReady, login, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black/30">

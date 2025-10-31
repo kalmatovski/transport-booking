@@ -93,22 +93,26 @@ const openPhone = useCallback(() => {
 }, [hasPhone, phoneTel]);
 
 // helper (оставь рядом с другими хелперами)
-const openTelFallback = (href) => {
+const callPhone = (phoneE164) => {
+  if (!phoneE164) return;
+  const href = `tel:${phoneE164}`;
+  // try {
+  //   // если открыто внутри Telegram WebApp — пробуем нативный метод
+  //   const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
+  //   if (tg?.openLink) {
+  //     tg.openLink(href);
+  //     return;
+  //   }
+  // } catch {}
+
+  // способ из скрина: window.open('tel:...')
   try {
-    const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
-    if (tg?.openLink) {
-      // иногда openLink срабатывает и для tel: на Android
-      tg.openLink(href);
-      return;
-    }
+    window.open(href, '_self');      // в webview обычно надёжнее, чем _blank
+    return;
   } catch {}
-  // обычный fallback
-  const a = document.createElement('a');
-  a.href = href;
-  a.style.display = 'none';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+
+  // запасной путь
+  window.location.href = href;
 };
 
 const openTelegram = useCallback(() => {
@@ -268,43 +272,20 @@ const openTelegram = useCallback(() => {
 <div className="flex flex-col sm:flex-row gap-2 mt-3">
 
 
-   {hasPhone ? (
-    <a
-      href={`tel:${phoneTel}`}            // прямой tel: — самый надёжный путь
-      onClick={(e) => {
-        if (driverLoading) {
-          e.preventDefault();
-          return;
-        }
-        // некоторые вебвью могут игнорить href — подстрахуемся
-        // (если href не сработал, пользователь всё равно тапнул — дадим fallback)
-        setTimeout(() => {
-          // если телефон не открылся, попробуем программно
-          openTelFallback(`tel:${phoneTel}`);
-        }, 50);
-      }}
-      className={`flex-1 flex items-center justify-center gap-2 border rounded-xl py-2 transition ${
-        !driverLoading
-          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-          : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
-      }`}
-      aria-disabled={driverLoading}
-      role="button"
-      title={`Позвонить ${phoneTel}`}
-    >
-      <Phone className="w-4 h-4" />
-      <span className="truncate">{driverLoading ? 'Загрузка…' : 'Позвонить'}</span>
-    </a>
-  ) : (
-    <button
-      disabled
-      className="flex-1 flex items-center justify-center gap-2 bg-gray-100 border border-gray-200 text-gray-400 rounded-xl py-2 cursor-not-allowed"
-      title="Телефон не указан"
-    >
-      <Phone className="w-4 h-4" />
-      <span className="truncate">Позвонить</span>
-    </button>
-  )}
+  <button
+  onClick={() => hasPhone && !driverLoading && callPhone(phoneTel)}
+  disabled={!hasPhone || driverLoading}
+  className={`flex-1 flex items-center justify-center gap-2 border rounded-xl py-2 transition ${
+    hasPhone && !driverLoading
+      ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+      : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+  }`}
+  aria-disabled={!hasPhone || driverLoading}
+  title={hasPhone ? `Позвонить ${phoneTel}` : 'Телефон не указан'}
+>
+  <Phone className="w-4 h-4" />
+  <span className="truncate">{driverLoading ? 'Загрузка…' : 'Позвонить'}</span>
+</button>
 
 
   <button

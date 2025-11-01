@@ -272,20 +272,26 @@ const openTelegram = useCallback(() => {
 <div className="flex flex-col sm:flex-row gap-2 mt-3">
 
 
-  <button
-  onClick={() => hasPhone && !driverLoading && callPhone(phoneTel)}
-  disabled={!hasPhone || driverLoading}
+    <a
+  href={hasPhone && !driverLoading ? `tel:${phoneTel}` : undefined}
+  aria-disabled={!hasPhone || driverLoading}
+  title={hasPhone ? `Позвонить ${phoneTel}` : 'Телефон не указан'}
   className={`flex-1 flex items-center justify-center gap-2 border rounded-xl py-2 transition ${
     hasPhone && !driverLoading
       ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
-      : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed'
+      : 'bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed pointer-events-none'
   }`}
-  aria-disabled={!hasPhone || driverLoading}
-  title={hasPhone ? `Позвонить ${phoneTel}` : 'Телефон не указан'}
 >
+
+      {/* <a
+                            href={`tel:${booking.passenger.phone}`}
+                            className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 min-w-0 flex-shrink-0"
+                          >
+                           
+                          </a> */}
   <Phone className="w-4 h-4" />
-  <span className="truncate">{driverLoading ? 'Загрузка…' : 'Позвонить'}</span>
-</button>
+  <span className="truncate">{driverLoading ? 'Загрузка…' : `Позвонить`}</span>
+</a>
 
 
   <button

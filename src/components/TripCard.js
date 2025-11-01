@@ -290,7 +290,7 @@ const openTelegram = useCallback(() => {
                            
                           </a> */}
   <Phone className="w-4 h-4" />
-  <span className="truncate">{driverLoading ? 'Загрузка…' : `Позвонить`}</span>
+  <span className="truncate">{driverLoading ? 'Загрузка…' : phoneTel}</span>
 </a>
 
 

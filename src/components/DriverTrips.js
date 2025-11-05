@@ -98,24 +98,26 @@ export function DriverTrips() {
 
   // Функции для изменения статуса поездки
   const handleStartTrip = (tripId) => {
-    const trip = trips?.find((t) => t.id === tripId);
-    if (trip) {
-      // Проверяем, есть ли забронированные места
-      const bookedSeats = (trip.car?.seat_count || 4) - trip.available_seats;
+  const trip = trips?.find((t) => t.id === tripId);
+  if (!trip) return;
 
-      if (bookedSeats === 0) {
-        notify.warning(
-          "Нельзя начать поездку без пассажиров! Дождитесь хотя бы одного бронирования"
-        );
-        return;
-      }
+  const bookedSeats = (trip.car?.seat_count || 4) - trip.available_seats;
+  const hasPassengers = bookedSeats > 0;
+  const hasPending = Array.isArray(trip.bookings)
+    ? trip.bookings.some(b => b.status === 'pending')
+    : false;
 
-      setStartTripModal({
-        isOpen: true,
-        trip: trip,
-      });
-    }
-  };
+  if (!hasPassengers) {
+    notify.warning("Нельзя начать поездку без пассажиров! Дождитесь хотя бы одного бронирования");
+    return;
+  }
+  if (hasPending) {
+    notify.warning("Есть неподтверждённые брони. Подтвердите или отмените их прежде чем стартовать");
+    return;
+  }
+
+  setStartTripModal({ isOpen: true, trip });
+};
 
   const handleConfirmStartTrip = (tripId) => {
     updateTripStatusMutation.mutate({ tripId, status: "in_road" });
@@ -511,36 +513,40 @@ export function DriverTrips() {
                   {trip.status === "available" && (
                     <>
                       {(() => {
-                        const bookedSeats =
-                          (trip.car?.seat_count || 4) - trip.available_seats;
+                        const bookedSeats = (trip.car?.seat_count || 4) - trip.available_seats;
                         const hasPassengers = bookedSeats > 0;
+
+
+                        const hasPending = Array.isArray(trip.bookings)
+                        ? trip.bookings.some(b => b.status === 'pending')
+                        : false;
 
                         return (
                           <Button
-                            onClick={() => handleStartTrip(trip.id)}
-                            className={`px-4 py-2 ${
-                              hasPassengers
-                                ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                            }`}
-                            disabled={
-                              updateTripStatusMutation.isPending ||
-                              !hasPassengers
-                            }
-                            title={
-                              !hasPassengers
-                                ? "Дождитесь хотя бы одного бронирования"
-                                : ""
-                            }
-                          >
-                            <Play className="w-4 h-4 mr-2" />
-                            Начать поездку
-                            {!hasPassengers && (
-                              <span className="ml-2 text-xs">
-                                (нет пассажиров)
-                              </span>
-                            )}
-                          </Button>
+  onClick={() => handleStartTrip(trip.id)}
+  className={`px-4 py-2 ${
+    hasPassengers && !hasPending
+      ? "bg-blue-600 hover:bg-blue-700 text-white"
+      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+  }`}
+  disabled={
+    updateTripStatusMutation.isPending ||
+    !hasPassengers ||
+    hasPending
+  }
+  title={
+    !hasPassengers
+      ? "Дождитесь хотя бы одного бронирования"
+      : hasPending
+        ? "Есть неподтверждённые брони"
+        : ""
+  }
+>
+  <Play className="w-4 h-4 mr-2" />
+  Начать поездку
+  {!hasPassengers && <span className="ml-2 text-xs">(нет пассажиров)</span>}
+  {hasPending && <span className="ml-2 text-xs">(есть pending)</span>}
+</Button>
                         );
                       })()}
                     </>

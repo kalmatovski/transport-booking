@@ -545,7 +545,7 @@ export function DriverTrips() {
   <Play className="w-4 h-4 mr-2" />
   Начать поездку
   {!hasPassengers && <span className="ml-2 text-xs">(нет пассажиров)</span>}
-  {hasPending && <span className="ml-2 text-xs">(есть pending)</span>}
+  {hasPending && <span className="ml-2 text-xs">(есть неподтверждённые брони)</span>}
 </Button>
                         );
                       })()}
